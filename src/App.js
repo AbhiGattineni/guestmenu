@@ -4,17 +4,14 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import CustomerMenu from "./pages/CustomerMenu";
 import LoginPage from "./pages/LoginPage";
-import AdminPage from "./pages/AdminPage";
+import ManagerDashboard from "./pages/ManagerDashboard";
 import BannerManagementPage from "./pages/BannerManagementPage";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard.jsx";
 import UnauthorizedPage from "./pages/UnauthorizedPage.jsx";
 import withRoleProtection from "./auth/withRoleProtection.jsx";
 
-
-const ManagerDashboard = () => <AdminPage />;
 const ProtectedManagerDashboard = withRoleProtection(ManagerDashboard, ['manager']);
 const ProtectedSuperAdminDashboard = withRoleProtection(SuperAdminDashboard, ['superadmin']);
-
 
 // Create a premium F&B themed palette and typography
 const theme = createTheme({

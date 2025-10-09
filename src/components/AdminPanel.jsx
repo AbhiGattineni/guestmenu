@@ -17,19 +17,17 @@ import {
   Tabs,
   Tab,
 } from "@mui/material";
-import { Close, Edit, Grass, LocalFireDepartment } from "@mui/icons-material";
+import { Close, Edit, Grass, LocalFireDepartment, Add } from "@mui/icons-material";
 import { useAuth } from "../context/AuthContext";
 import {
   fetchMenuCategories,
   fetchMenuItems,
   updateMenuItem,
+  addMenuItem,
 } from "../services/firebaseService";
 import EditItemDialog from "./EditItemDialog";
+import AddItemDialog from "./AddItemDialog";
 
-/**
- * AdminPanel Component
- * Admin interface for managers to view and edit menu items
- */
 const AdminPanel = ({ open, onClose }) => {
   const { user } = useAuth();
   const [categories, setCategories] = useState([]);
@@ -38,15 +36,14 @@ const AdminPanel = ({ open, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [editItem, setEditItem] = useState(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [addItemDialogOpen, setAddItemDialogOpen] = useState(false);
 
-  // Fetch categories on mount
   useEffect(() => {
     if (open) {
       loadCategories();
     }
   }, [open]);
 
-  // Fetch items when category changes
   useEffect(() => {
     if (selectedCategoryId) {
       loadItems(selectedCategoryId);
@@ -84,19 +81,26 @@ const AdminPanel = ({ open, onClose }) => {
 
   const handleSaveItem = async (updatedItem) => {
     try {
-      // Call the mock API to update the item
       await updateMenuItem(updatedItem);
-
-      // Update the local state immediately for UI feedback
       setItems((prevItems) =>
         prevItems.map((item) =>
           item.id === updatedItem.id ? updatedItem : item
         )
       );
-
       console.log("Item saved successfully:", updatedItem);
     } catch (error) {
       console.error("Error saving item:", error);
+    }
+  };
+
+  const handleAddItem = async (newItem) => {
+    try {
+      const itemWithCategoryId = { ...newItem, categoryId: selectedCategoryId };
+      const addedItem = await addMenuItem(itemWithCategoryId);
+      setItems((prevItems) => [...prevItems, addedItem]);
+      console.log("Item added successfully:", addedItem);
+    } catch (error) {
+      console.error("Error adding item:", error);
     }
   };
 
@@ -135,10 +139,7 @@ const AdminPanel = ({ open, onClose }) => {
         </DialogTitle>
 
         <DialogContent sx={{ p: 0, bgcolor: "background.default" }}>
-          {/* Category Tabs */}
-          <Box
-            sx={{ borderBottom: 1, borderColor: "divider", bgcolor: "white" }}
-          >
+          <Box sx={{ borderBottom: 1, borderColor: "divider", bgcolor: "white" }}>
             <Tabs
               value={selectedCategoryId}
               onChange={handleTabChange}
@@ -156,15 +157,23 @@ const AdminPanel = ({ open, onClose }) => {
             </Tabs>
           </Box>
 
-          {/* Items Grid */}
           <Box sx={{ p: 3 }}>
+            <Box sx={{ mb: 3, display: "flex", justifyContent: "flex-end" }}>
+              <Button
+                startIcon={<Add />}
+                variant="contained"
+                onClick={() => setAddItemDialogOpen(true)}
+                sx={{
+                  background: "linear-gradient(135deg, #8C3A2B 0%, #C66F53 100%)",
+                }}
+              >
+                Add Item
+              </Button>
+            </Box>
+
             {loading ? (
               <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "center",
-                  py: 8,
-                }}
+                sx={{ display: "flex", justifyContent: "center", py: 8 }}
               >
                 <CircularProgress size={60} />
               </Box>
@@ -248,12 +257,18 @@ const AdminPanel = ({ open, onClose }) => {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Item Dialog */}
       <EditItemDialog
         open={editDialogOpen}
         onClose={() => setEditDialogOpen(false)}
         item={editItem}
         onSave={handleSaveItem}
+      />
+
+      <AddItemDialog
+        open={addItemDialogOpen}
+        onClose={() => setAddItemDialogOpen(false)}
+        onSave={handleAddItem}
+        categoryId={selectedCategoryId}
       />
     </>
   );
