@@ -40,8 +40,8 @@ The application features a rich, food and beverage industry-style design with:
 
 - **React**: Modern React with Hooks
 - **Material-UI (MUI)**: Component library and theming
+- **Firebase**: Authentication and Firestore Database
 - **Context API**: State management for authentication
-- **Mock API**: Simulated backend for demonstration
 
 ## 📦 Installation
 
@@ -50,12 +50,17 @@ The application features a rich, food and beverage industry-style design with:
    npm install
    ```
 
-2. **Start the development server**:
+2. **Set up Firebase**:
+   - Follow the [Firebase Setup Guide](FIREBASE_SETUP_GUIDE.md) to configure Firestore
+   - Initialize your restaurant data
+   - Set up authentication
+
+3. **Start the development server**:
    ```bash
    npm start
    ```
 
-3. **Open your browser**:
+4. **Open your browser**:
    Navigate to [http://localhost:3000](http://localhost:3000)
 
 ## 🔑 Manager Login
@@ -102,11 +107,17 @@ menuscanner/
 │   │   ├── AdminPanel.jsx        # Admin interface
 │   │   └── EditItemDialog.jsx    # Item edit form
 │   ├── context/
-│   │   └── AuthContext.jsx       # Authentication state
+│   │   └── AuthContext.jsx       # Firebase authentication
 │   ├── pages/
-│   │   └── LandingPage.jsx       # Main page component
+│   │   ├── CustomerMenu.jsx      # Customer-facing menu
+│   │   ├── AdminPage.jsx         # Manager dashboard
+│   │   ├── BannerManagementPage.jsx  # Banner management
+│   │   ├── LoginPage.jsx         # Login page
+│   │   └── SuperAdminDashboard.jsx   # Super admin panel
 │   ├── services/
-│   │   └── mockApi.js            # Mock backend API
+│   │   ├── firebaseService.js    # Firebase Firestore operations
+│   │   └── initializeFirestoreData.js  # Data initialization
+│   ├── firebase.js               # Firebase configuration
 │   ├── App.js                    # Root component with theme
 │   └── index.js                  # Entry point
 ├── package.json
@@ -117,64 +128,50 @@ menuscanner/
 
 ### Adding Menu Items
 
-Edit `src/services/mockApi.js` and add items to the appropriate category in `mockMenuItems`:
-
-```javascript
-{
-  id: 999,
-  name: "New Dish",
-  description: "Delicious new item",
-  price: 15.99,
-  image: "https://images.unsplash.com/...",
-  isVegetarian: false,
-  isSpicy: false,
-}
-```
+Use the Manager Admin Panel to add menu items through the UI, or directly in Firebase Console:
+1. Navigate to Firestore Database
+2. Go to `clients/{clientId}/menuItems`
+3. Add a new document with the required fields
 
 ### Updating Restaurant Information
 
-Edit `mockRestaurantData` in `src/services/mockApi.js`:
+Update via Firebase Console:
+1. Navigate to `clients/{clientId}/settings/restaurantInfo`
+2. Edit the document fields
 
-```javascript
-const mockRestaurantData = {
-  id: 1,
-  name: "Your Restaurant Name",
-  logo: "https://your-logo-url.com/logo.png",
-  description: "Your restaurant tagline",
-};
-```
+Or use the initialization script to set default values.
 
-### Changing Banners
+### Managing Banners
 
-Edit `mockBanners` in `src/services/mockApi.js` to update promotional slides.
+Use the Banner Management page in the admin panel (`/admin/banners`) to add, edit, or delete promotional banners.
 
 ### Theme Customization
 
 Modify the theme in `src/App.js` to change colors, fonts, and component styles.
 
-## 🌐 Backend Integration
+## 🔥 Firebase Integration
 
-This application currently uses mock APIs. To connect to a real backend:
+This application uses **Firebase** for backend services:
 
-1. **Replace mock API calls** in `src/services/mockApi.js` with actual HTTP requests
-2. **Implement authentication** with JWT or session-based auth
-3. **Add image upload** functionality for menu items
-4. **Set up database** for persistent storage
-5. **Deploy backend** API server
+- **Firestore Database**: Real-time NoSQL database for menu data
+- **Firebase Authentication**: Secure user authentication
+- **Multi-tenant Architecture**: Support for multiple restaurants
 
-Example with axios:
+### Key Features:
+- ✅ Real-time data synchronization
+- ✅ Secure role-based access control
+- ✅ Scalable cloud infrastructure
+- ✅ Automatic backups and recovery
 
-```javascript
-export const fetchMenuItems = async (categoryId) => {
-  const response = await axios.get(`/api/categories/${categoryId}/items`);
-  return response.data;
-};
+### Setup:
+See the detailed [Firebase Setup Guide](FIREBASE_SETUP_GUIDE.md) for complete instructions.
 
-export const updateMenuItem = async (updatedItem) => {
-  const response = await axios.put(`/api/items/${updatedItem.id}`, updatedItem);
-  return response.data;
-};
-```
+### Adding Custom Features:
+You can extend the Firebase service in `src/services/firebaseService.js` to add:
+- Image upload to Firebase Storage
+- Order management
+- Customer reviews
+- Reservation system
 
 ## 📸 Screenshots
 

@@ -23,7 +23,7 @@ import {
   fetchMenuCategories,
   fetchMenuItems,
   updateMenuItem,
-} from "../services/mockApi";
+} from "../services/firebaseService";
 import EditItemDialog from "./EditItemDialog";
 
 /**

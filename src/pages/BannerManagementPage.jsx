@@ -18,7 +18,11 @@ import {
 import { ArrowBack, Add, Delete, Visibility } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { fetchBanners, addBanner, deleteBanner } from "../services/mockApi";
+import {
+  fetchBanners,
+  addBanner,
+  deleteBanner,
+} from "../services/firebaseService";
 import AddBannerDialog from "../components/AddBannerDialog";
 
 /**

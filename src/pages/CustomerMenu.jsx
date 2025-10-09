@@ -17,7 +17,7 @@ import {
   fetchRestaurantInfo,
   fetchBanners,
   fetchMenuCategories,
-} from "../services/mockApi";
+} from "../services/firebaseService";
 
 /**
  * CustomerMenu Component

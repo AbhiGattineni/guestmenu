@@ -13,9 +13,13 @@ const firebaseConfig = {
   storageBucket: "menuscanner-6f332.firebasestorage.app",
   messagingSenderId: "900061990435",
   appId: "1:900061990435:web:507b2f140ffa1f2491ab96",
-  measurementId: "G-M04V0HHX3V"
+  measurementId: "G-M04V0HHX3V",
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
+
+// Export the initialized app
+export { app, analytics };
+export default app;

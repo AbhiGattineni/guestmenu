@@ -38,7 +38,7 @@ import {
   updateMenuItem,
   addCategory,
   toggleCategoryVisibility,
-} from "../services/mockApi";
+} from "../services/firebaseService";
 import EditItemDialog from "../components/EditItemDialog";
 import AddCategoryDialog from "../components/AddCategoryDialog";
 
@@ -47,7 +47,7 @@ import AddCategoryDialog from "../components/AddCategoryDialog";
  * Full page admin interface for managers to view and edit menu items
  */
 const AdminPage = () => {
-  const { user, logout, isAuthenticated } = useAuth();
+  const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
   const [categories, setCategories] = useState([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
@@ -57,12 +57,8 @@ const AdminPage = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [addCategoryDialogOpen, setAddCategoryDialogOpen] = useState(false);
 
-  // Redirect if not authenticated
-  useEffect(() => {
-    if (!isAuthenticated) {
-      navigate("/login");
-    }
-  }, [isAuthenticated, navigate]);
+  // Note: Authentication is handled by withRoleProtection wrapper
+  // No need to check here as this component is already protected
 
   // Fetch categories on mount
   useEffect(() => {
@@ -159,9 +155,13 @@ const AdminPage = () => {
     }
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate("/");
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate("/login");
+    } catch (error) {
+      console.error("Error logging out:", error);
+    }
   };
 
   return (
@@ -177,25 +177,38 @@ const AdminPage = () => {
           boxShadow: "0 2px 20px rgba(0,0,0,0.08)",
         }}
       >
-        <Toolbar sx={{ py: 1.5 }}>
+        <Toolbar sx={{ py: { xs: 1, sm: 1.5 }, px: { xs: 1, sm: 2 } }}>
           {/* Logo & Title Section */}
-          <Box sx={{ display: "flex", alignItems: "center", flexGrow: 1 }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              flexGrow: 1,
+              minWidth: 0,
+            }}
+          >
             <Box
               sx={{
-                width: 48,
-                height: 48,
+                width: { xs: 36, sm: 48 },
+                height: { xs: 36, sm: 48 },
                 borderRadius: 2,
                 background: "linear-gradient(135deg, #F2C14E 0%, #C8A97E 100%)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                mr: 2,
+                mr: { xs: 1, sm: 2 },
                 boxShadow: "0 4px 12px rgba(242, 193, 78, 0.3)",
+                flexShrink: 0,
               }}
             >
-              <Typography variant="h4">🍽️</Typography>
+              <Typography
+                variant="h4"
+                sx={{ fontSize: { xs: "1.5rem", sm: "2rem" } }}
+              >
+                🍽️
+              </Typography>
             </Box>
-            <Box>
+            <Box sx={{ minWidth: 0, overflow: "hidden" }}>
               <Typography
                 variant="h6"
                 sx={{
@@ -203,16 +216,31 @@ const AdminPage = () => {
                   color: "white",
                   letterSpacing: 0.5,
                   fontFamily: "Playfair Display, serif",
+                  fontSize: { xs: "0.875rem", sm: "1.25rem" },
+                  whiteSpace: { xs: "nowrap", sm: "normal" },
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
                 }}
               >
-                Admin Dashboard
+                <Box
+                  component="span"
+                  sx={{ display: { xs: "none", md: "inline" } }}
+                >
+                  Admin Dashboard
+                </Box>
+                <Box
+                  component="span"
+                  sx={{ display: { xs: "inline", md: "none" } }}
+                >
+                  Admin
+                </Box>
               </Typography>
               <Typography
                 variant="caption"
                 sx={{
                   color: "#F2C14E",
                   fontWeight: 500,
-                  display: "flex",
+                  display: { xs: "none", sm: "flex" },
                   alignItems: "center",
                   gap: 0.5,
                 }}
@@ -227,22 +255,25 @@ const AdminPage = () => {
                     display: "inline-block",
                   }}
                 />
-                {user?.name || "Manager"}
+                {currentUser?.displayName || currentUser?.email || "Manager"}
               </Typography>
             </Box>
           </Box>
 
           {/* Action Buttons */}
-          <Box sx={{ display: "flex", gap: 1.5 }}>
+          <Box sx={{ display: "flex", gap: { xs: 0.5, sm: 1.5 } }}>
             <Button
-              startIcon={<PhotoLibrary />}
+              startIcon={
+                <PhotoLibrary sx={{ display: { xs: "none", sm: "block" } }} />
+              }
               onClick={() => navigate("/admin/banners")}
               sx={{
                 color: "white",
                 borderColor: "rgba(242, 193, 78, 0.3)",
                 textTransform: "none",
                 fontWeight: 600,
-                px: 2.5,
+                px: { xs: 1, sm: 2.5 },
+                minWidth: { xs: "auto", sm: "auto" },
                 borderRadius: 2,
                 "&:hover": {
                   borderColor: "#F2C14E",
@@ -251,17 +282,26 @@ const AdminPage = () => {
               }}
               variant="outlined"
             >
-              Banners
+              <PhotoLibrary sx={{ display: { xs: "block", sm: "none" } }} />
+              <Box
+                component="span"
+                sx={{ display: { xs: "none", sm: "inline" } }}
+              >
+                Banners
+              </Box>
             </Button>
             <Button
-              startIcon={<Visibility />}
+              startIcon={
+                <Visibility sx={{ display: { xs: "none", sm: "block" } }} />
+              }
               onClick={() => navigate("/")}
               sx={{
                 color: "white",
                 borderColor: "rgba(242, 193, 78, 0.3)",
                 textTransform: "none",
                 fontWeight: 600,
-                px: 2.5,
+                px: { xs: 1, sm: 2.5 },
+                minWidth: { xs: "auto", sm: "auto" },
                 borderRadius: 2,
                 "&:hover": {
                   borderColor: "#F2C14E",
@@ -270,17 +310,26 @@ const AdminPage = () => {
               }}
               variant="outlined"
             >
-              View Menu
+              <Visibility sx={{ display: { xs: "block", sm: "none" } }} />
+              <Box
+                component="span"
+                sx={{ display: { xs: "none", sm: "inline" } }}
+              >
+                View Menu
+              </Box>
             </Button>
             <Button
-              startIcon={<Logout />}
+              startIcon={
+                <Logout sx={{ display: { xs: "none", sm: "block" } }} />
+              }
               onClick={handleLogout}
               sx={{
                 background: "linear-gradient(135deg, #8C3A2B 0%, #6B2C20 100%)",
                 color: "white",
                 textTransform: "none",
                 fontWeight: 600,
-                px: 2.5,
+                px: { xs: 1, sm: 2.5 },
+                minWidth: { xs: "auto", sm: "auto" },
                 borderRadius: 2,
                 boxShadow: "0 4px 12px rgba(140, 58, 43, 0.3)",
                 "&:hover": {
@@ -291,7 +340,13 @@ const AdminPage = () => {
               }}
               variant="contained"
             >
-              Logout
+              <Logout sx={{ display: { xs: "block", sm: "none" } }} />
+              <Box
+                component="span"
+                sx={{ display: { xs: "none", sm: "inline" } }}
+              >
+                Logout
+              </Box>
             </Button>
           </Box>
         </Toolbar>

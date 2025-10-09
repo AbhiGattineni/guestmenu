@@ -1,5 +1,10 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
+import {
+  getAuth,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signOut,
+} from "firebase/auth";
 import { getFirestore, doc, getDoc } from "firebase/firestore";
 
 const AuthContext = createContext();
@@ -23,19 +28,36 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
+
       if (user) {
-        // Fetch user's role from Firestore
-        const clientName = window.location.hostname.split('.')[0];
-        const userDocRef = doc(db, `clients/${clientName}/users`, user.uid);
+        console.log("🔐 User authenticated:", user.email, "UID:", user.uid);
+
+        // Fetch user document from single users collection
+        const userDocRef = doc(db, "users", user.uid);
         const userDoc = await getDoc(userDocRef);
+
         if (userDoc.exists()) {
-          setUserRole(userDoc.data().role);
+          const userData = userDoc.data();
+          const role = userData.role;
+          console.log("✅ User role found:", role, "| User data:", userData);
+          setUserRole(role);
         } else {
+          console.error("❌ NO ROLE DOCUMENT FOUND!");
+          console.warn(
+            `No role document found for user ${user.uid} at path: users/${user.uid}`
+          );
+          console.info(`🔧 FIX: Go to Firebase Console → Firestore Database`);
+          console.info(`📝 Create document at path: users/${user.uid}`);
+          console.info(
+            `📋 Add fields: { role: "superadmin" or "manager", email: "${user.email}" }`
+          );
           setUserRole(null);
         }
       } else {
+        console.log("👋 User logged out");
         setUserRole(null);
       }
+
       setLoading(false);
     });
     return unsubscribe;
@@ -57,9 +79,5 @@ export const AuthProvider = ({ children }) => {
     logout,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {!loading && children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

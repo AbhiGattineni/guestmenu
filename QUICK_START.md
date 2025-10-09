@@ -1,6 +1,6 @@
 # Quick Start Guide
 
-## Getting Started in 3 Steps
+## Getting Started in 4 Steps
 
 ### 1. Install and Run
 
@@ -14,7 +14,21 @@ npm start
 
 The app will open at `http://localhost:3000/`
 
-### 2. Test Customer Experience
+### 2. Set up Firebase (First Time Only)
+
+**Important**: Before using the app, you need to initialize Firebase data.
+
+See the detailed [Firebase Setup Guide](FIREBASE_SETUP_GUIDE.md) for complete instructions.
+
+**Quick Setup**:
+1. Enable Firestore Database in Firebase Console
+2. Run the data initialization (see guide)
+3. Set up Firestore security rules
+4. Create manager users
+
+This is a **one-time setup** per restaurant.
+
+### 3. Test Customer Experience
 
 **Route**: `http://localhost:3000/`
 
@@ -23,7 +37,7 @@ The app will open at `http://localhost:3000/`
 3. **Click a category** - e.g., "Appetizers" to view menu items
 4. **Click "Back to Categories"** - Return to main menu
 
-### 3. Test Manager Features
+### 4. Test Manager Features
 
 #### Login
 **Route**: `http://localhost:3000/login`

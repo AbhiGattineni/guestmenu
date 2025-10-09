@@ -11,7 +11,7 @@ import {
   Button,
 } from "@mui/material";
 import { ArrowBack, LocalFireDepartment, Grass } from "@mui/icons-material";
-import { fetchMenuItems } from "../services/mockApi";
+import { fetchMenuItems } from "../services/firebaseService";
 
 /**
  * CategoryDetail Component
