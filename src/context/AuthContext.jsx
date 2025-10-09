@@ -1,8 +1,7 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { getFirestore, doc, getDoc } from "firebase/firestore";
 
-/**
- * AuthContext - Manages authentication state across the application
- */
 const AuthContext = createContext();
 
 export const useAuth = () => {
@@ -14,48 +13,53 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [userRole, setUserRole] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  /**
-   * Mock login function
-   * In production, this would call a real authentication API
-   */
-  const login = async (email, password) => {
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+  const auth = getAuth();
+  const db = getFirestore();
 
-    // Mock authentication - accept any email/password for demo
-    // In production, validate credentials against backend
-    if (email && password) {
-      const mockUser = {
-        id: 1,
-        email: email,
-        name: "Restaurant Manager",
-        role: "manager",
-      };
-      setUser(mockUser);
-      setIsAuthenticated(true);
-      return { success: true, user: mockUser };
-    }
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setCurrentUser(user);
+      if (user) {
+        // Fetch user's role from Firestore
+        const clientName = window.location.hostname.split('.')[0];
+        const userDocRef = doc(db, `clients/${clientName}/users`, user.uid);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+          setUserRole(userDoc.data().role);
+        } else {
+          setUserRole(null);
+        }
+      } else {
+        setUserRole(null);
+      }
+      setLoading(false);
+    });
+    return unsubscribe;
+  }, [auth, db]);
 
-    return { success: false, error: "Invalid credentials" };
+  const login = (email, password) => {
+    return signInWithEmailAndPassword(auth, email, password);
   };
 
-  /**
-   * Logout function
-   */
   const logout = () => {
-    setUser(null);
-    setIsAuthenticated(false);
+    return signOut(auth);
   };
 
   const value = {
-    user,
-    isAuthenticated,
+    currentUser,
+    userRole,
+    loading,
     login,
     logout,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {!loading && children}
+    </AuthContext.Provider>
+  );
 };

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import {
   Box,
@@ -8,31 +9,30 @@ import {
   Typography,
   CircularProgress,
   Alert,
-  Card,
-  CardContent,
 } from "@mui/material";
-import { Login, ArrowBack } from "@mui/icons-material";
+import { Login } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-/**
- * LoginPage Component
- * Dedicated login page for managers
- */
 const LoginPage = () => {
-  const { login, isAuthenticated } = useAuth();
+  const { login, currentUser, userRole } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Redirect if already authenticated
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate("/admin");
+    if (currentUser) {
+      if (userRole === 'manager') {
+        navigate('/manager-dashboard');
+      } else if (userRole === 'superadmin') {
+        navigate('/superadmin-dashboard');
+      } else {
+        navigate('/unauthorized');
+      }
     }
-  }, [isAuthenticated, navigate]);
+  }, [currentUser, userRole, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -40,15 +40,9 @@ const LoginPage = () => {
     setLoading(true);
 
     try {
-      const result = await login(email, password);
-      if (result.success) {
-        // Navigate to admin panel on successful login
-        navigate("/admin");
-      } else {
-        setError(result.error || "Login failed. Please try again.");
-      }
+      await login(email, password);
     } catch (err) {
-      setError("An error occurred. Please try again.");
+      setError("Failed to log in");
     } finally {
       setLoading(false);
     }
@@ -66,17 +60,16 @@ const LoginPage = () => {
         py: 4,
       }}
     >
-      <Container maxWidth="sm">
+      <Container maxWidth="xs">
         <Paper
           elevation={8}
           sx={{
-            p: { xs: 3, sm: 5 },
+            p: 4,
             borderRadius: 3,
             background: "white",
             boxShadow: "0 16px 48px rgba(44,26,18,0.12)",
           }}
         >
-          {/* Header */}
           <Box sx={{ textAlign: "center", mb: 4 }}>
             <Box
               sx={{
@@ -97,50 +90,16 @@ const LoginPage = () => {
               variant="h4"
               sx={{ fontWeight: 700, color: "primary.dark", mb: 1 }}
             >
-              Manager Login
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Access the admin panel to manage menu items
+              Login
             </Typography>
           </Box>
 
-          {/* Demo Info Alert */}
-          <Alert severity="info" sx={{ mb: 3 }}>
-            <strong>Demo Mode:</strong> Use any email and password to login
-          </Alert>
-
-          {/* Suggested Credentials Card */}
-          <Card
-            sx={{
-              mb: 3,
-              bgcolor: "secondary.light",
-              border: "1px solid",
-              borderColor: "secondary.main",
-            }}
-          >
-            <CardContent sx={{ py: 2 }}>
-              <Typography
-                variant="subtitle2"
-                sx={{ fontWeight: 600, mb: 1, color: "primary.dark" }}
-              >
-                💡 Suggested Credentials:
-              </Typography>
-              <Typography variant="body2" sx={{ fontFamily: "monospace" }}>
-                Email: <strong>manager@restaurant.com</strong>
-                <br />
-                Password: <strong>admin123</strong>
-              </Typography>
-            </CardContent>
-          </Card>
-
-          {/* Error Alert */}
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {error}
             </Alert>
           )}
 
-          {/* Login Form */}
           <form onSubmit={handleSubmit}>
             <TextField
               fullWidth
@@ -151,8 +110,6 @@ const LoginPage = () => {
               required
               disabled={loading}
               sx={{ mb: 2 }}
-              placeholder="manager@restaurant.com"
-              autoFocus
             />
 
             <TextField
@@ -164,7 +121,6 @@ const LoginPage = () => {
               required
               disabled={loading}
               sx={{ mb: 3 }}
-              placeholder="Enter password"
             />
 
             <Button
@@ -176,38 +132,11 @@ const LoginPage = () => {
                 py: 1.5,
                 fontSize: "1rem",
                 fontWeight: 600,
-                mb: 2,
               }}
             >
-              {loading ? (
-                <CircularProgress size={24} color="inherit" />
-              ) : (
-                "Login to Admin Panel"
-              )}
-            </Button>
-
-            <Button
-              variant="outlined"
-              fullWidth
-              startIcon={<ArrowBack />}
-              onClick={() => navigate("/")}
-              disabled={loading}
-            >
-              Back to Menu
+              {loading ? <CircularProgress size={24} color="inherit" /> : "Login"}
             </Button>
           </form>
-
-          {/* Additional Info */}
-          <Box sx={{ mt: 4, pt: 3, borderTop: "1px solid #e0e0e0" }}>
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ display: "block", textAlign: "center" }}
-            >
-              After login, you can edit menu items, update prices, and manage
-              categories
-            </Typography>
-          </Box>
         </Paper>
       </Container>
     </Box>

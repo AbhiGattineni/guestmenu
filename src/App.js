@@ -6,6 +6,15 @@ import CustomerMenu from "./pages/CustomerMenu";
 import LoginPage from "./pages/LoginPage";
 import AdminPage from "./pages/AdminPage";
 import BannerManagementPage from "./pages/BannerManagementPage";
+import SuperAdminDashboard from "./pages/SuperAdminDashboard.jsx";
+import UnauthorizedPage from "./pages/UnauthorizedPage.jsx";
+import withRoleProtection from "./auth/withRoleProtection.jsx";
+
+
+const ManagerDashboard = () => <AdminPage />;
+const ProtectedManagerDashboard = withRoleProtection(ManagerDashboard, ['manager']);
+const ProtectedSuperAdminDashboard = withRoleProtection(SuperAdminDashboard, ['superadmin']);
+
 
 // Create a premium F&B themed palette and typography
 const theme = createTheme({
@@ -103,10 +112,13 @@ function App() {
             {/* Customer Routes */}
             <Route path="/" element={<CustomerMenu />} />
 
-            {/* Manager Routes */}
+            {/* Auth Routes */}
             <Route path="/login" element={<LoginPage />} />
-            <Route path="/admin" element={<AdminPage />} />
-            <Route path="/admin/banners" element={<BannerManagementPage />} />
+            <Route path="/unauthorized" element={<UnauthorizedPage />} />
+
+            {/* Protected Routes */}
+            <Route path="/manager-dashboard" element={<ProtectedManagerDashboard />} />
+            <Route path="/superadmin-dashboard" element={<ProtectedSuperAdminDashboard />} />
 
             {/* Catch all - redirect to home */}
             <Route path="*" element={<Navigate to="/" replace />} />
