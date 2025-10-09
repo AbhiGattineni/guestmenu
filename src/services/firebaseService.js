@@ -8,6 +8,9 @@
  *   - banners (collection)
  *   - categories (collection)
  *   - menuItems (collection)
+ * users/{userId}/
+ *   - role (string)
+ *   - storeId (string, for managers)
  */
 
 import {
@@ -28,13 +31,46 @@ import "../firebase"; // Initialize Firebase
 
 const db = getFirestore();
 
+// This variable will hold the manager's store ID once they are logged in.
+let managerStoreId = null;
+
 /**
- * Get the client ID based on subdomain or configuration
- * In production, this would be determined by the URL subdomain
- * For development, we'll use a default client ID
+ * Sets the store ID for the logged-in manager.
+ * This will override the subdomain logic for all subsequent Firestore calls.
+ * @param {string} storeId - The manager's assigned store ID.
+ */
+export const setManagerStoreId = (storeId) => {
+  console.log(`Setting manager store ID to: ${storeId}`);
+  managerStoreId = storeId;
+};
+
+/**
+ * Clears the manager's store ID, for example on logout.
+ */
+export const clearManagerStoreId = () => {
+  managerStoreId = null;
+};
+
+/**
+ * Get the client ID for Firestore operations.
+ * For a logged-in manager, it uses the storeId from their profile.
+ * For the public-facing customer menu, it uses the URL subdomain.
+ * A default ID is used for local development if no other ID is available.
  */
 const getClientId = () => {
-  // Check if running in development
+  // 1. If a manager's store ID is set, always use it.
+  if (managerStoreId) {
+    return managerStoreId;
+  }
+
+  // 2. For the customer view, check for a subdomain.
+  // Note: This part of the logic might need adjustment based on production URL structure.
+  const hostnameParts = window.location.hostname.split(".");
+  if (hostnameParts.length > 2 && hostnameParts[0] !== "www") {
+    return hostnameParts[0];
+  }
+
+  // 3. For local development of the customer view, use a default.
   if (
     window.location.hostname === "localhost" ||
     window.location.hostname === "127.0.0.1"
@@ -42,10 +78,33 @@ const getClientId = () => {
     return "demo-restaurant"; // Default client for development
   }
 
-  // Extract subdomain as client ID
-  const subdomain = window.location.hostname.split(".")[0];
-  return subdomain || "demo-restaurant";
+  // Fallback if no other logic applies
+  return "demo-restaurant";
 };
+
+/**
+ * Fetches user data from the 'users' collection.
+ * @param {string} userId - The UID of the user to fetch.
+ * @returns {Promise<Object|null>} User data object or null if not found.
+ */
+export const getUserData = async (userId) => {
+  try {
+    if (!userId) return null;
+    const userDocRef = doc(db, "users", userId);
+    const userDocSnap = await getDoc(userDocRef);
+
+    if (userDocSnap.exists()) {
+      return userDocSnap.data();
+    } else {
+      console.warn(`User document not found for ID: ${userId}`);
+      return null;
+    }
+  } catch (error) {
+    console.error("Error fetching user data:", error);
+    throw error;
+  }
+};
+
 
 /**
  * Fetch restaurant information

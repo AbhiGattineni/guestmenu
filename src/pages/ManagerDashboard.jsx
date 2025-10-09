@@ -19,6 +19,7 @@ import {
   Fab,
   Switch,
   FormControlLabel,
+  Alert,
 } from "@mui/material";
 import {
   Logout,
@@ -30,135 +31,162 @@ import {
   Home,
   Add,
   PhotoLibrary,
+  Storefront,
+  ErrorOutline,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import {
+  getUserData,
+  setManagerStoreId,
+  clearManagerStoreId,
   fetchMenuCategories,
   fetchMenuItems,
   updateMenuItem,
   addCategory,
   toggleCategoryVisibility,
-  addMenuItem, // Import addMenuItem
+  addMenuItem,
 } from "../services/firebaseService";
 import EditItemDialog from "../components/EditItemDialog";
 import AddCategoryDialog from "../components/AddCategoryDialog";
-import AddItemDialog from "../components/AddItemDialog"; // Import AddItemDialog
+import AddItemDialog from "../components/AddItemDialog";
 
 // Define the ManagerDashboard component
 const ManagerDashboard = () => {
   // --- STATE MANAGEMENT ---
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
+
+  // New state to track store assignment status: 'verifying', 'assigned', 'unassigned'
+  const [storeStatus, setStoreStatus] = useState("verifying");
+
   const [categories, setCategories] = useState([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
   const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loadingData, setLoadingData] = useState(false); // For loading categories/items
   const [editItem, setEditItem] = useState(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [addCategoryDialogOpen, setAddCategoryDialogOpen] = useState(false);
-  const [addItemDialogOpen, setAddItemDialogOpen] = useState(false); // State for AddItemDialog
+  const [addItemDialogOpen, setAddItemDialogOpen] = useState(false);
 
-  // --- DATA FETCHING ---
-  // Fetch categories when the component mounts
+  // --- STORE VERIFICATION & DATA FETCHING ---
+  // 1. Verify manager's store assignment when the user is available
   useEffect(() => {
-    loadCategories();
-  }, []);
+    if (!currentUser) {
+      setStoreStatus("verifying");
+      return;
+    }
 
-  // Fetch menu items when a category is selected
+    const verifyStore = async () => {
+      try {
+        const userData = await getUserData(currentUser.uid);
+        if (userData && userData.storeId) {
+          setManagerStoreId(userData.storeId); // Set the storeId for all API calls
+          setStoreStatus("assigned");
+        } else {
+          setStoreStatus("unassigned");
+        }
+      } catch (error) {
+        console.error("Error verifying manager's store:", error);
+        setStoreStatus("unassigned");
+      }
+    };
+
+    verifyStore();
+  }, [currentUser]);
+
+  // 2. Load categories only after the store has been assigned
   useEffect(() => {
-    if (selectedCategoryId) {
+    if (storeStatus === "assigned") {
+      loadCategories();
+    }
+  }, [storeStatus]);
+
+  // 3. Load items when a category is selected
+  useEffect(() => {
+    if (storeStatus === "assigned" && selectedCategoryId) {
       loadItems(selectedCategoryId);
     }
-  }, [selectedCategoryId]);
+  }, [selectedCategoryId, storeStatus]);
+
 
   // --- API INTERACTION ---
-  // Load all menu categories
   const loadCategories = async () => {
+    setLoadingData(true);
     try {
-      const data = await fetchMenuCategories(true); // true to include hidden
+      const data = await fetchMenuCategories(true);
       setCategories(data);
       if (data.length > 0) {
         setSelectedCategoryId(data[0].id);
       }
     } catch (error) {
       console.error("Error loading categories:", error);
+    } finally {
+      setLoadingData(false);
     }
   };
 
-  // Load menu items for a specific category
   const loadItems = async (categoryId) => {
-    setLoading(true);
+    setLoadingData(true);
     try {
-      const data = await fetchMenuItems(categoryId, true); // true to include hidden
+      const data = await fetchMenuItems(categoryId, true);
       setItems(data);
     } catch (error) {
       console.error("Error loading items:", error);
     } finally {
-      setLoading(false);
+      setLoadingData(false);
     }
   };
 
   // --- EVENT HANDLERS ---
-  // Handle clicking the edit button for an item
   const handleEditClick = (item) => {
     setEditItem(item);
     setEditDialogOpen(true);
   };
 
-  // Handle saving an updated menu item
   const handleSaveItem = async (updatedItem) => {
     try {
       await updateMenuItem(updatedItem);
-      loadItems(selectedCategoryId); // Reload items to reflect changes
-      console.log("Item saved successfully:", updatedItem);
+      loadItems(selectedCategoryId);
     } catch (error) {
       console.error("Error saving item:", error);
     }
   };
 
-  // Handle adding a new item
   const handleAddItem = async (newItem) => {
     try {
       await addMenuItem({ ...newItem, categoryId: selectedCategoryId });
-      loadItems(selectedCategoryId); // Reload items to reflect changes
-      console.log("Item added successfully:", newItem);
+      loadItems(selectedCategoryId);
     } catch (error) {
       console.error("Error adding item:", error);
     }
   };
 
-  // Handle changing the selected category tab
   const handleTabChange = (event, newValue) => {
     setSelectedCategoryId(newValue);
   };
 
-  // Handle adding a new category
   const handleAddCategory = async (categoryData) => {
     try {
-      const newCategory = await addCategory(categoryData);
-      setCategories((prev) => [...prev, newCategory]);
-      setSelectedCategoryId(newCategory.id); // Auto-select new category
+      await addCategory(categoryData);
+      loadCategories(); // Reload all categories to get the new one
     } catch (error) {
       console.error("Error adding category:", error);
     }
   };
 
-  // Handle toggling the visibility of a category
   const handleToggleCategoryVisibility = async (categoryId) => {
     try {
-      const updatedCategory = await toggleCategoryVisibility(categoryId);
-      setCategories((prev) =>
-        prev.map((cat) => (cat.id === categoryId ? updatedCategory : cat))
-      );
+      await toggleCategoryVisibility(categoryId);
+      loadCategories(); // Reload to reflect visibility change
     } catch (error) {
       console.error("Error toggling category visibility:", error);
     }
   };
 
-  // Handle user logout
   const handleLogout = async () => {
     try {
+      clearManagerStoreId(); // Clear the store ID on logout
       await logout();
       navigate("/login");
     } catch (error) {
@@ -166,7 +194,38 @@ const ManagerDashboard = () => {
     }
   };
 
+
   // --- RENDER LOGIC ---
+
+  // 1. Show loading spinner while verifying store assignment
+  if (storeStatus === "verifying") {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+        <Typography sx={{ ml: 2 }}>Verifying your access...</Typography>
+      </Box>
+    );
+  }
+
+  // 2. Show error message if no store is assigned
+  if (storeStatus === "unassigned") {
+    return (
+      <Container maxWidth="sm" sx={{ textAlign: 'center', mt: 8 }}>
+        <ErrorOutline sx={{ fontSize: 60, color: 'error.main' }} />
+        <Typography variant="h4" gutterBottom sx={{ mt: 2 }}>
+          No Store Assigned
+        </Typography>
+        <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+          You have not been assigned to a store. Please contact a super admin to get access to your store's dashboard.
+        </Typography>
+        <Button variant="contained" onClick={handleLogout} startIcon={<Logout />}>
+          Logout
+        </Button>
+      </Container>
+    );
+  }
+
+  // 3. Render the full dashboard if store is assigned
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
       {/* Top Application Bar */}
@@ -178,42 +237,19 @@ const ManagerDashboard = () => {
         }}
       >
         <Toolbar sx={{ py: { xs: 1, sm: 1.5 }, px: { xs: 1, sm: 2 } }}>
-          {/* Logo and Title */}
           <Box sx={{ display: "flex", alignItems: "center", flexGrow: 1 }}>
-            <Box
-              sx={{
-                width: { xs: 36, sm: 48 },
-                height: { xs: 36, sm: 48 },
-                borderRadius: 2,
-                background: "linear-gradient(135deg, #F2C14E 0%, #C8A97E 100%)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                mr: { xs: 1, sm: 2 },
-              }}
-            >
-              <Typography variant="h4">🍽️</Typography>
-            </Box>
+             <Storefront sx={{ color: '#F2C14E', mr: 2, fontSize: 30 }} />
             <Box>
               <Typography variant="h6" sx={{ color: "white" }}>
                 Manager Dashboard
               </Typography>
               <Typography variant="caption" sx={{ color: "#F2C14E" }}>
-                {currentUser?.displayName || currentUser?.email || "Manager"}
+                {currentUser?.email}
               </Typography>
             </Box>
           </Box>
-          {/* Action Buttons */}
           <Box sx={{ display: "flex", gap: { xs: 0.5, sm: 1.5 } }}>
-            <Button
-              startIcon={<PhotoLibrary />}
-              onClick={() => navigate("/admin/banners")}
-              variant="outlined"
-              sx={{ color: "white", borderColor: "rgba(242, 193, 78, 0.3)" }}
-            >
-              Banners
-            </Button>
-            <Button
+             <Button
               startIcon={<Visibility />}
               onClick={() => navigate("/")}
               variant="outlined"
@@ -221,7 +257,7 @@ const ManagerDashboard = () => {
             >
               View Menu
             </Button>
-            <Button onClick={handleLogout} variant="contained" color="primary">
+            <Button onClick={handleLogout} variant="contained" color="error">
               <Logout />
             </Button>
           </Box>
@@ -229,7 +265,7 @@ const ManagerDashboard = () => {
       </AppBar>
 
       {/* Category Selection Tabs */}
-      <Box sx={{ bgcolor: "white", position: "sticky", top: 80, zIndex: 100 }}>
+      <Box sx={{ bgcolor: "white", position: "sticky", top: 80, zIndex: 100, borderBottom: '1px solid #eee' }}>
         <Container maxWidth="xl">
           <Box
             sx={{
@@ -247,9 +283,15 @@ const ManagerDashboard = () => {
               {categories.map((category) => (
                 <Tab
                   key={category.id}
-                  label={`${category.icon} ${category.name}`}
+                  label={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                       {category.icon && <span style={{ fontSize: '1.2rem' }}>{category.icon}</span>}
+                      {category.name}
+                      {!category.isActive && <Chip label="Hidden" size="small" sx={{ ml: 1, height: 18 }} />}
+                    </Box>
+                  }
                   value={category.id}
-                  sx={{ opacity: category.isActive ? 1 : 0.5 }}
+                  sx={{ opacity: category.isActive ? 1 : 0.6 }}
                 />
               ))}
             </Tabs>
@@ -266,13 +308,12 @@ const ManagerDashboard = () => {
 
       {/* Main Content Grid for Menu Items */}
       <Container maxWidth="xl" sx={{ py: 4 }}>
-        {loading ? (
+        {loadingData ? (
           <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
             <CircularProgress size={60} />
           </Box>
         ) : (
           <>
-            {/* Category-level actions */}
             <Box
               sx={{
                 display: "flex",
@@ -284,26 +325,21 @@ const ManagerDashboard = () => {
               <Typography variant="h6" color="text.secondary">
                 {items.length} items in this category
               </Typography>
-              {selectedCategoryId && (
-                <Box>
+              {selectedCategoryId && categories.find(c => c.id === selectedCategoryId) && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   <Button
                     variant="contained"
+                    color="primary"
                     startIcon={<Add />}
                     onClick={() => setAddItemDialogOpen(true)}
-                    sx={{ mr: 2 }}
                   >
                     Add Item
                   </Button>
                   <FormControlLabel
                     control={
                       <Switch
-                        checked={
-                          categories.find((c) => c.id === selectedCategoryId)
-                            ?.isActive ?? true
-                        }
-                        onChange={() =>
-                          handleToggleCategoryVisibility(selectedCategoryId)
-                        }
+                        checked={categories.find((c) => c.id === selectedCategoryId).isActive}
+                        onChange={() => handleToggleCategoryVisibility(selectedCategoryId)}
                       />
                     }
                     label="Category Visible"
@@ -311,62 +347,58 @@ const ManagerDashboard = () => {
                 </Box>
               )}
             </Box>
-            {/* Grid of menu items */}
-            <Grid container spacing={3}>
-              {items.map((item) => (
-                <Grid item xs={12} sm={6} md={4} lg={3} key={item.id}>
-                  <Card sx={{ opacity: item.isActive ? 1 : 0.6 }}>
-                    <CardMedia
-                      component="img"
-                      height="180"
-                      image={item.image}
-                      alt={item.name}
-                    />
-                    <CardContent>
-                      <Typography variant="h6">{item.name}</Typography>
-                      <Typography variant="body2">{item.description}</Typography>
-                      <Chip label={`$${item.price.toFixed(2)}`} />
-                      {item.isVegetarian && <Grass titleAccess="Vegetarian" />}
-                      {item.isSpicy && (<LocalFireDepartment titleAccess="Spicy" />)}
-                    </CardContent>
-                    <CardActions>
-                      <Button onClick={() => handleEditClick(item)}>
-                        <Edit /> Edit
-                      </Button>
-                    </CardActions>
-                  </Card>
-                </Grid>
-              ))}
-            </Grid>
+            
+            {items.length > 0 ? (
+              <Grid container spacing={3}>
+                {items.map((item) => (
+                  <Grid item xs={12} sm={6} md={4} lg={3} key={item.id}>
+                    <Card sx={{ opacity: item.isActive ? 1 : 0.6, border: item.isActive ? '' : '2px dashed #d32f2f' }}>
+                      <CardMedia
+                        component="img"
+                        height="180"
+                        image={item.image}
+                        alt={item.name}
+                      />
+                      {!item.isActive && (
+                         <Chip label="Hidden" color="error" size="small" sx={{ position: 'absolute', top: 8, right: 8 }}/>
+                      )}
+                      <CardContent>
+                        <Typography variant="h6" component="div">{item.name}</Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ minHeight: 40 }}>{item.description}</Typography>
+                        <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Chip label={`$${item.price.toFixed(2)}`} color="primary" size="small" />
+                          {item.isVegetarian && <Grass titleAccess="Vegetarian" color="success" />}
+                          {item.isSpicy && <LocalFireDepartment titleAccess="Spicy" color="warning" />}
+                        </Box>
+                      </CardContent>
+                      <CardActions>
+                        <Button startIcon={<Edit />} fullWidth variant="outlined" onClick={() => handleEditClick(item)}>
+                          Edit
+                        </Button>
+                      </CardActions>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            ) : (
+                <Typography sx={{ textAlign: 'center', py: 6, color: 'text.secondary' }}>No items found in this category. Use the "Add Item" button to get started.</Typography>
+            )}
           </>
         )}
       </Container>
 
-      {/* Floating Action Button to return to menu */}
-      <Fab
-        color="secondary"
-        onClick={() => navigate("/")}
-        sx={{ position: "fixed", bottom: 24, right: 24 }}
-      >
-        <Home />
-      </Fab>
-
-      {/* Dialog for Editing an Item */}
+      {/* Dialogs */}
       <EditItemDialog
         open={editDialogOpen}
         onClose={() => setEditDialogOpen(false)}
         item={editItem}
         onSave={handleSaveItem}
       />
-
-      {/* Dialog for Adding a Category */}
       <AddCategoryDialog
         open={addCategoryDialogOpen}
         onClose={() => setAddCategoryDialogOpen(false)}
         onSave={handleAddCategory}
       />
-
-      {/* Dialog for Adding an Item */}
       <AddItemDialog
         open={addItemDialogOpen}
         onClose={() => setAddItemDialogOpen(false)}
