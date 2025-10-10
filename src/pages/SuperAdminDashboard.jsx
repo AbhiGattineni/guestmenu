@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   AppBar,
   Toolbar,
@@ -8,7 +8,6 @@ import {
   Tabs,
   Tab,
   Button,
-  IconButton,
   useMediaQuery,
   useTheme,
 } from "@mui/material";

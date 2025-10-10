@@ -5,7 +5,6 @@ import { AuthProvider } from "./context/AuthContext";
 import SmartHome from "./components/SmartHome";
 import LoginPage from "./pages/LoginPage";
 import ManagerDashboard from "./pages/ManagerDashboard";
-import BannerManagementPage from "./pages/BannerManagementPage";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard.jsx";
 import UnauthorizedPage from "./pages/UnauthorizedPage.jsx";
 import withRoleProtection from "./auth/withRoleProtection.jsx";

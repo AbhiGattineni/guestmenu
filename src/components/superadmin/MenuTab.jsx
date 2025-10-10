@@ -123,6 +123,7 @@ const MenuTab = () => {
     if (selectedStore) {
       fetchMenuData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedStore]);
 
   const fetchStores = async () => {

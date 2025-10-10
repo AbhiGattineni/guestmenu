@@ -7,14 +7,6 @@ import {
   DialogContent,
   DialogActions,
   TextField,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  IconButton,
   CircularProgress,
   Typography,
   Alert,
@@ -69,6 +61,7 @@ const BannersTab = () => {
     if (selectedStore) {
       fetchBanners();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedStore]);
 
   const fetchStores = async () => {

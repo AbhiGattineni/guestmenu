@@ -2,8 +2,6 @@ import React, { useState, useEffect } from "react";
 import {
   Box,
   Button,
-  Card,
-  CardContent,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -26,11 +24,10 @@ import {
   Typography,
   Alert,
 } from "@mui/material";
-import { Add, Edit, Delete, Store as StoreIcon } from "@mui/icons-material";
+import { Add, Delete, Store as StoreIcon } from "@mui/icons-material";
 import {
   getAllUsers,
   createUser,
-  updateUser,
   deleteUser,
   assignStoreToManager,
   getAllStores,
