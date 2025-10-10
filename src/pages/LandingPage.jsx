@@ -54,7 +54,12 @@ const LandingPage = () => {
         setCategories(categoriesData);
       } catch (err) {
         console.error("Error fetching data:", err);
-        setError("Failed to load menu. Please try again later.");
+        // Show specific error message if store doesn't exist
+        if (err.message && err.message.includes("does not exist")) {
+          setError(err.message);
+        } else {
+          setError("Failed to load menu. Please try again later.");
+        }
       } finally {
         setLoading(false);
       }

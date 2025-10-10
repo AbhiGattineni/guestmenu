@@ -1,55 +1,66 @@
 import React, { useState, useEffect } from "react";
 import {
-  getFirestore,
-  collection,
-  getDocs,
-  setDoc,
-  doc,
-  updateDoc,
-  deleteDoc,
-} from "firebase/firestore";
-import {
   AppBar,
   Toolbar,
   Typography,
   Container,
-  Grid,
-  Card,
-  CardContent,
-  Button,
-  TextField,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  IconButton,
   Box,
+  Tabs,
+  Tab,
+  Button,
+  IconButton,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import {
-  Delete,
-  Visibility,
-  VisibilityOff,
+  Dashboard,
+  People,
+  Store,
+  Restaurant,
+  Image,
   Logout,
   Home,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-const SuperAdminDashboard = () => {
-  const [stats, setStats] = useState({
-    totalStores: 0,
-    totalMenuItems: 0,
-    totalManagers: 0,
-  });
-  const [stores, setStores] = useState([]);
-  const [newStoreId, setNewStoreId] = useState("");
-  const [newManager, setNewManager] = useState({ uid: "", storeId: "" });
+// Import tab components
+import AnalyticsTab from "../components/superadmin/AnalyticsTab";
+import UsersTab from "../components/superadmin/UsersTab";
+import StoresTab from "../components/superadmin/StoresTab";
+import BannersTab from "../components/superadmin/BannersTab";
+import MenuTab from "../components/superadmin/MenuTab";
 
-  const db = getFirestore();
+/**
+ * TabPanel Component
+ */
+function TabPanel({ children, value, index }) {
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`tabpanel-${index}`}
+      aria-labelledby={`tab-${index}`}
+    >
+      {value === index && <Box sx={{ py: 3 }}>{children}</Box>}
+    </div>
+  );
+}
+
+/**
+ * Super Admin Dashboard
+ * Comprehensive dashboard with Analytics, User Management, Store Management, and Menu Management
+ */
+const SuperAdminDashboard = () => {
+  const [currentTab, setCurrentTab] = useState(0);
   const navigate = useNavigate();
   const { logout, currentUser } = useAuth();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
+  const handleTabChange = (event, newValue) => {
+    setCurrentTab(newValue);
+  };
 
   const handleLogout = async () => {
     try {
@@ -60,82 +71,27 @@ const SuperAdminDashboard = () => {
     }
   };
 
-  const fetchStatsAndStores = async () => {
-    const clientsCollection = collection(db, "clients");
-    const clientsSnapshot = await getDocs(clientsCollection);
-    const storesData = clientsSnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
-
-    let totalMenuItems = 0;
-    let totalManagers = 0;
-
-    for (const store of storesData) {
-      const menuItemsCollection = collection(
-        db,
-        `clients/${store.id}/menuItems`
-      );
-      const menuItemsSnapshot = await getDocs(menuItemsCollection);
-      totalMenuItems += menuItemsSnapshot.size;
-
-      const usersCollection = collection(db, `clients/${store.id}/users`);
-      const usersSnapshot = await getDocs(usersCollection);
-      usersSnapshot.forEach((userDoc) => {
-        if (userDoc.data().role === "manager") {
-          totalManagers++;
-        }
-      });
-    }
-
-    setStats({
-      totalStores: storesData.length,
-      totalMenuItems,
-      totalManagers,
-    });
-    setStores(storesData);
-  };
-
-  useEffect(() => {
-    fetchStatsAndStores();
-  }, []);
-
-  const handleOnboardStore = async () => {
-    if (!newStoreId) return;
-    await setDoc(doc(db, "clients", newStoreId), { createdAt: new Date() });
-    setNewStoreId("");
-    fetchStatsAndStores();
-  };
-
-  const handleAssignManager = async () => {
-    if (!newManager.uid || !newManager.storeId) return;
-    await setDoc(
-      doc(db, `clients/${newManager.storeId}/users`, newManager.uid),
-      { role: "manager" }
-    );
-    setNewManager({ uid: "", storeId: "" });
-    fetchStatsAndStores();
-  };
-
-  const handleDeleteStore = async (storeId) => {
-    await deleteDoc(doc(db, "clients", storeId));
-    fetchStatsAndStores();
-  };
-
-  const handleToggleVisibility = async (storeId, currentVisibility) => {
-    await updateDoc(doc(db, "clients", storeId), {
-      isHidden: !currentVisibility,
-    });
-    fetchStatsAndStores();
-  };
+  const tabs = [
+    { label: "Analytics", icon: <Dashboard />, component: <AnalyticsTab /> },
+    { label: "Users", icon: <People />, component: <UsersTab /> },
+    { label: "Stores", icon: <Store />, component: <StoresTab /> },
+    { label: "Banners", icon: <Image />, component: <BannersTab /> },
+    { label: "Menu", icon: <Restaurant />, component: <MenuTab /> },
+  ];
 
   return (
-    <>
+    <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
+      {/* App Bar */}
       <AppBar
-        position="static"
-        sx={{ background: "linear-gradient(135deg, #2C1A12 0%, #3D2817 100%)" }}
+        position="sticky"
+        elevation={0}
+        sx={{
+          background: "linear-gradient(135deg, #2C1A12 0%, #3D2817 100%)",
+          borderBottom: "1px solid rgba(242, 193, 78, 0.1)",
+        }}
       >
-        <Toolbar sx={{ px: { xs: 1, sm: 2 }, py: { xs: 1, sm: 1.5 } }}>
+        <Toolbar sx={{ py: { xs: 1, sm: 1.5 }, px: { xs: 1, sm: 2 } }}>
+          {/* Left side - Title */}
           <Box
             sx={{
               display: "flex",
@@ -144,27 +100,14 @@ const SuperAdminDashboard = () => {
               minWidth: 0,
             }}
           >
-            <Box
+            <Dashboard
               sx={{
-                width: { xs: 32, sm: 40 },
-                height: { xs: 32, sm: 40 },
-                borderRadius: "50%",
-                background: "linear-gradient(135deg, #F2C14E 0%, #C8A97E 100%)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
+                color: "#F2C14E",
                 mr: { xs: 1, sm: 2 },
-                boxShadow: "0 4px 12px rgba(242, 193, 78, 0.3)",
+                fontSize: { xs: 28, sm: 36 },
                 flexShrink: 0,
               }}
-            >
-              <Typography
-                variant="h6"
-                sx={{ fontSize: { xs: "1rem", sm: "1.25rem" } }}
-              >
-                👑
-              </Typography>
-            </Box>
+            />
             <Box sx={{ minWidth: 0, overflow: "hidden" }}>
               <Typography
                 variant="h6"
@@ -172,7 +115,7 @@ const SuperAdminDashboard = () => {
                   fontWeight: 700,
                   color: "white",
                   fontSize: { xs: "0.875rem", sm: "1.25rem" },
-                  whiteSpace: { xs: "nowrap", sm: "normal" },
+                  whiteSpace: "nowrap",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                 }}
@@ -187,7 +130,7 @@ const SuperAdminDashboard = () => {
                   component="span"
                   sx={{ display: { xs: "inline", md: "none" } }}
                 >
-                  Super Admin
+                  Admin
                 </Box>
               </Typography>
               <Typography
@@ -195,9 +138,6 @@ const SuperAdminDashboard = () => {
                 sx={{
                   color: "#F2C14E",
                   display: { xs: "none", sm: "block" },
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
                 }}
               >
                 {currentUser?.email}
@@ -205,28 +145,29 @@ const SuperAdminDashboard = () => {
             </Box>
           </Box>
 
-          <Box sx={{ display: "flex", gap: { xs: 1, sm: 2 } }}>
+          {/* Right side - Buttons */}
+          <Box sx={{ display: "flex", gap: { xs: 0.5, sm: 1.5 } }}>
             <Button
               startIcon={<Home sx={{ display: { xs: "none", sm: "block" } }} />}
               onClick={() => navigate("/")}
+              variant="outlined"
               sx={{
                 color: "white",
                 borderColor: "rgba(242, 193, 78, 0.3)",
+                px: { xs: 1, sm: 2.5 },
                 minWidth: { xs: "auto", sm: "auto" },
-                px: { xs: 1.5, sm: 2.5 },
                 "&:hover": {
                   borderColor: "#F2C14E",
                   bgcolor: "rgba(242, 193, 78, 0.08)",
                 },
               }}
-              variant="outlined"
             >
               <Home sx={{ display: { xs: "block", sm: "none" } }} />
               <Box
                 component="span"
                 sx={{ display: { xs: "none", sm: "inline" } }}
               >
-                View Menu
+                Home
               </Box>
             </Button>
             <Button
@@ -234,20 +175,17 @@ const SuperAdminDashboard = () => {
                 <Logout sx={{ display: { xs: "none", sm: "block" } }} />
               }
               onClick={handleLogout}
+              variant="contained"
               sx={{
                 background: "linear-gradient(135deg, #8C3A2B 0%, #6B2C20 100%)",
                 color: "white",
-                fontWeight: 600,
+                px: { xs: 1, sm: 2.5 },
                 minWidth: { xs: "auto", sm: "auto" },
-                px: { xs: 1.5, sm: 2.5 },
-                boxShadow: "0 4px 12px rgba(140, 58, 43, 0.3)",
                 "&:hover": {
                   background:
                     "linear-gradient(135deg, #6B2C20 0%, #8C3A2B 100%)",
-                  boxShadow: "0 6px 16px rgba(140, 58, 43, 0.4)",
                 },
               }}
-              variant="contained"
             >
               <Logout sx={{ display: { xs: "block", sm: "none" } }} />
               <Box
@@ -259,105 +197,55 @@ const SuperAdminDashboard = () => {
             </Button>
           </Box>
         </Toolbar>
-      </AppBar>
-      <Container sx={{ mt: 4 }}>
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={4}>
-            <Card>
-              <CardContent>
-                <Typography variant="h5">Total Stores</Typography>
-                <Typography variant="h3">{stats.totalStores}</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Card>
-              <CardContent>
-                <Typography variant="h5">Total Menu Items</Typography>
-                <Typography variant="h3">{stats.totalMenuItems}</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Card>
-              <CardContent>
-                <Typography variant="h5">Total Managers</Typography>
-                <Typography variant="h3">{stats.totalManagers}</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
 
-        <Paper sx={{ mt: 4, p: 2 }}>
-          <Typography variant="h6">Onboard New Store</Typography>
-          <TextField
-            label="New Store ID"
-            value={newStoreId}
-            onChange={(e) => setNewStoreId(e.target.value)}
-            sx={{ mr: 2 }}
-          />
-          <Button variant="contained" onClick={handleOnboardStore}>
-            Onboard
-          </Button>
-        </Paper>
-
-        <Paper sx={{ mt: 4, p: 2 }}>
-          <Typography variant="h6">Assign Manager to Store</Typography>
-          <TextField
-            label="Manager UID"
-            value={newManager.uid}
-            onChange={(e) =>
-              setNewManager({ ...newManager, uid: e.target.value })
-            }
-            sx={{ mr: 2 }}
-          />
-          <TextField
-            label="Store ID"
-            value={newManager.storeId}
-            onChange={(e) =>
-              setNewManager({ ...newManager, storeId: e.target.value })
-            }
-            sx={{ mr: 2 }}
-          />
-          <Button variant="contained" onClick={handleAssignManager}>
-            Assign
-          </Button>
-        </Paper>
-
-        <Paper sx={{ mt: 4 }}>
-          <Typography variant="h6" sx={{ p: 2 }}>
-            Stores
-          </Typography>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>ID</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {stores.map((store) => (
-                <TableRow key={store.id}>
-                  <TableCell>{store.id}</TableCell>
-                  <TableCell>
-                    <IconButton onClick={() => handleDeleteStore(store.id)}>
-                      <Delete />
-                    </IconButton>
-                    <IconButton
-                      onClick={() =>
-                        handleToggleVisibility(store.id, store.isHidden)
-                      }
-                    >
-                      {store.isHidden ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
+        {/* Tabs */}
+        <Box sx={{ borderBottom: 1, borderColor: "rgba(255,255,255,0.1)" }}>
+          <Container maxWidth="xl">
+            <Tabs
+              value={currentTab}
+              onChange={handleTabChange}
+              textColor="inherit"
+              indicatorColor="secondary"
+              variant={isMobile ? "scrollable" : "standard"}
+              scrollButtons="auto"
+              sx={{
+                "& .MuiTab-root": {
+                  color: "rgba(255,255,255,0.7)",
+                  fontWeight: 600,
+                  minHeight: { xs: 56, sm: 64 },
+                  "&.Mui-selected": {
+                    color: "#F2C14E",
+                  },
+                },
+                "& .MuiTabs-indicator": {
+                  backgroundColor: "#F2C14E",
+                  height: 3,
+                },
+              }}
+            >
+              {tabs.map((tab, index) => (
+                <Tab
+                  key={index}
+                  icon={tab.icon}
+                  label={isMobile ? null : tab.label}
+                  iconPosition="start"
+                  sx={{ minWidth: isMobile ? "auto" : 120 }}
+                />
               ))}
-            </TableBody>
-          </Table>
-        </Paper>
+            </Tabs>
+          </Container>
+        </Box>
+      </AppBar>
+
+      {/* Tab Content */}
+      <Container maxWidth="xl">
+        {tabs.map((tab, index) => (
+          <TabPanel key={index} value={currentTab} index={index}>
+            {tab.component}
+          </TabPanel>
+        ))}
       </Container>
-    </>
+    </Box>
   );
 };
 

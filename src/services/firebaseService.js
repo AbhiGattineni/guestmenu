@@ -56,29 +56,50 @@ export const clearManagerStoreId = () => {
  * For a logged-in manager, it uses the storeId from their profile.
  * For the public-facing customer menu, it uses the URL subdomain.
  * A default ID is used for local development if no other ID is available.
+ *
+ * Examples:
+ * - 1.localhost:3000 → clientId: "1"
+ * - store123.yourdomain.com → clientId: "store123"
+ * - localhost:3000 → clientId: "demo-restaurant" (default)
  */
 const getClientId = () => {
-  // 1. If a manager's store ID is set, always use it.
+  // 1. If a manager's store ID is set, always use it (for logged-in managers).
   if (managerStoreId) {
+    console.log(`🏪 Using manager store ID: ${managerStoreId}`);
     return managerStoreId;
   }
 
   // 2. For the customer view, check for a subdomain.
-  // Note: This part of the logic might need adjustment based on production URL structure.
-  const hostnameParts = window.location.hostname.split(".");
-  if (hostnameParts.length > 2 && hostnameParts[0] !== "www") {
-    return hostnameParts[0];
+  const hostname = window.location.hostname;
+  const hostnameParts = hostname.split(".");
+
+  // Check if there's a subdomain (not "www" or "localhost" alone)
+  // Handles: 1.localhost, store.localhost, abc.example.com, etc.
+  if (hostnameParts.length >= 2 && hostnameParts[0] !== "www") {
+    // For *.localhost (e.g., 1.localhost, store.localhost)
+    if (hostnameParts[hostnameParts.length - 1] === "localhost") {
+      const storeId = hostnameParts[0];
+      console.log(`🏪 Detected subdomain for localhost: ${storeId}`);
+      return storeId;
+    }
+    // For production domains (e.g., store.example.com)
+    if (hostnameParts.length > 2) {
+      const storeId = hostnameParts[0];
+      console.log(`🏪 Detected subdomain: ${storeId}`);
+      return storeId;
+    }
   }
 
-  // 3. For local development of the customer view, use a default.
-  if (
-    window.location.hostname === "localhost" ||
-    window.location.hostname === "127.0.0.1"
-  ) {
-    return "demo-restaurant"; // Default client for development
+  // 3. For local development without subdomain (plain localhost)
+  if (hostname === "localhost" || hostname === "127.0.0.1") {
+    console.log(`🏪 Using default store for localhost: demo-restaurant`);
+    return "demo-restaurant";
   }
 
-  // Fallback if no other logic applies
+  // Fallback
+  console.warn(
+    `⚠️ Could not determine store ID from hostname: ${hostname}, using default`
+  );
   return "demo-restaurant";
 };
 
@@ -105,27 +126,36 @@ export const getUserData = async (userId) => {
   }
 };
 
-
 /**
  * Fetch restaurant information
+ * Fetches the main client/store document which contains name, description, logo, etc.
  * @returns {Promise<Object>} Restaurant data
  */
 export const fetchRestaurantInfo = async () => {
   try {
     const clientId = getClientId();
-    const docRef = doc(db, "clients", clientId, "settings", "restaurantInfo");
+    console.log(`📋 Fetching restaurant info for store: ${clientId}`);
+
+    // Fetch the main client document (e.g., clients/1)
+    const docRef = doc(db, "clients", clientId);
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
-      return { id: docSnap.id, ...docSnap.data() };
-    } else {
-      // Return default data if not found
+      const data = docSnap.data();
+      console.log(`✅ Restaurant info loaded:`, data);
       return {
-        id: 1,
-        name: "The Gourmet Kitchen",
-        logo: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=200&h=200&fit=crop&q=80",
-        description: "Fine dining experience with authentic flavors",
+        id: clientId,
+        ...data,
       };
+    } else {
+      console.error(`❌ Store not found: ${clientId}`);
+      console.error(`💡 Please create a document at: clients/${clientId}`);
+      console.error(
+        `📋 Required fields: name, description (optional: logo, address, phone)`
+      );
+      throw new Error(
+        `Store "${clientId}" does not exist in the database. Please create it in Firestore.`
+      );
     }
   } catch (error) {
     console.error("Error fetching restaurant info:", error);
@@ -135,13 +165,17 @@ export const fetchRestaurantInfo = async () => {
 
 /**
  * Update restaurant information
+ * Updates the main client/store document
  * @param {Object} restaurantData - Restaurant data to update
  * @returns {Promise<Object>} Updated restaurant data
  */
 export const updateRestaurantInfo = async (restaurantData) => {
   try {
     const clientId = getClientId();
-    const docRef = doc(db, "clients", clientId, "settings", "restaurantInfo");
+    console.log(`📝 Updating restaurant info for store: ${clientId}`);
+
+    // Update the main client document (e.g., clients/1)
+    const docRef = doc(db, "clients", clientId);
     await setDoc(
       docRef,
       {
@@ -150,6 +184,8 @@ export const updateRestaurantInfo = async (restaurantData) => {
       },
       { merge: true }
     );
+
+    console.log(`✅ Restaurant info updated successfully`);
     return restaurantData;
   } catch (error) {
     console.error("Error updating restaurant info:", error);
@@ -164,16 +200,22 @@ export const updateRestaurantInfo = async (restaurantData) => {
 export const fetchBanners = async () => {
   try {
     const clientId = getClientId();
+    console.log(`🎨 Fetching banners for store: ${clientId}`);
+
     const bannersRef = collection(db, "clients", clientId, "banners");
     const q = query(bannersRef, orderBy("createdAt", "desc"));
     const querySnapshot = await getDocs(q);
 
-    return querySnapshot.docs.map((doc) => ({
+    const banners = querySnapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
     }));
+
+    console.log(`✅ Found ${banners.length} banners:`, banners);
+    return banners;
   } catch (error) {
-    console.error("Error fetching banners:", error);
+    console.error("❌ Error fetching banners:", error);
+    console.error("Error details:", error.message);
     // Return empty array if collection doesn't exist yet
     return [];
   }
@@ -209,6 +251,26 @@ export const addBanner = async (bannerData) => {
 };
 
 /**
+ * Update a banner
+ * @param {string} bannerId - ID of banner to update
+ * @param {Object} updates - Updated banner data
+ * @returns {Promise<void>}
+ */
+export const updateBanner = async (bannerId, updates) => {
+  try {
+    const clientId = getClientId();
+    const bannerRef = doc(db, "clients", clientId, "banners", bannerId);
+    await updateDoc(bannerRef, {
+      ...updates,
+      updatedAt: Timestamp.now(),
+    });
+  } catch (error) {
+    console.error("Error updating banner:", error);
+    throw error;
+  }
+};
+
+/**
  * Delete a banner
  * @param {string} bannerId - ID of banner to delete
  * @returns {Promise<boolean>} Success status
@@ -233,27 +295,34 @@ export const deleteBanner = async (bannerId) => {
 export const fetchMenuCategories = async (includeHidden = false) => {
   try {
     const clientId = getClientId();
+    console.log(
+      `📂 Fetching categories for store: ${clientId} (includeHidden: ${includeHidden})`
+    );
+
     const categoriesRef = collection(db, "clients", clientId, "categories");
-    let q;
 
-    if (includeHidden) {
-      q = query(categoriesRef, orderBy("order", "asc"));
-    } else {
-      q = query(
-        categoriesRef,
-        where("isActive", "==", true),
-        orderBy("order", "asc")
-      );
-    }
+    // Fetch all categories and filter/sort in memory to avoid composite index requirement
+    // Once you create the Firestore index, you can optimize this to query directly
+    const querySnapshot = await getDocs(categoriesRef);
 
-    const querySnapshot = await getDocs(q);
-
-    return querySnapshot.docs.map((doc) => ({
+    let categories = querySnapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
     }));
+
+    // Filter out inactive categories if needed
+    if (!includeHidden) {
+      categories = categories.filter((cat) => cat.isActive === true);
+    }
+
+    // Sort by order field
+    categories.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+    console.log(`✅ Found ${categories.length} categories:`, categories);
+    return categories;
   } catch (error) {
-    console.error("Error fetching categories:", error);
+    console.error("❌ Error fetching categories:", error);
+    console.error("Error details:", error.message);
     return [];
   }
 };
@@ -333,6 +402,24 @@ export const toggleCategoryVisibility = async (categoryId) => {
 };
 
 /**
+ * Delete a category
+ * Note: This does not delete associated menu items. Consider doing that separately if needed.
+ * @param {string} categoryId - Category ID to delete
+ * @returns {Promise<void>}
+ */
+export const deleteCategory = async (categoryId) => {
+  try {
+    const clientId = getClientId();
+    const categoryRef = doc(db, "clients", clientId, "categories", categoryId);
+    await deleteDoc(categoryRef);
+    console.log(`Category ${categoryId} deleted successfully`);
+  } catch (error) {
+    console.error("Error deleting category:", error);
+    throw error;
+  }
+};
+
+/**
  * Fetch menu items by category
  * @param {string} categoryId - Category ID
  * @param {boolean} includeHidden - Whether to include hidden items
@@ -341,27 +428,31 @@ export const toggleCategoryVisibility = async (categoryId) => {
 export const fetchMenuItems = async (categoryId, includeHidden = false) => {
   try {
     const clientId = getClientId();
+    console.log(
+      `🍽️ Fetching menu items for store: ${clientId}, category: ${categoryId} (includeHidden: ${includeHidden})`
+    );
+
     const itemsRef = collection(db, "clients", clientId, "menuItems");
-    let q;
 
-    if (includeHidden) {
-      q = query(itemsRef, where("categoryId", "==", categoryId));
-    } else {
-      q = query(
-        itemsRef,
-        where("categoryId", "==", categoryId),
-        where("isActive", "==", true)
-      );
-    }
-
+    // Query by categoryId only to avoid composite index requirement
+    const q = query(itemsRef, where("categoryId", "==", categoryId));
     const querySnapshot = await getDocs(q);
 
-    return querySnapshot.docs.map((doc) => ({
+    let items = querySnapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
     }));
+
+    // Filter out inactive items in memory if needed
+    if (!includeHidden) {
+      items = items.filter((item) => item.isActive === true);
+    }
+
+    console.log(`✅ Found ${items.length} menu items:`, items);
+    return items;
   } catch (error) {
-    console.error("Error fetching menu items:", error);
+    console.error("❌ Error fetching menu items:", error);
+    console.error("Error details:", error.message);
     return [];
   }
 };

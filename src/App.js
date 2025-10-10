@@ -2,7 +2,7 @@ import React from "react";
 import { ThemeProvider, createTheme, CssBaseline } from "@mui/material";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
-import CustomerMenu from "./pages/CustomerMenu";
+import SmartHome from "./components/SmartHome";
 import LoginPage from "./pages/LoginPage";
 import ManagerDashboard from "./pages/ManagerDashboard";
 import BannerManagementPage from "./pages/BannerManagementPage";
@@ -10,8 +10,12 @@ import SuperAdminDashboard from "./pages/SuperAdminDashboard.jsx";
 import UnauthorizedPage from "./pages/UnauthorizedPage.jsx";
 import withRoleProtection from "./auth/withRoleProtection.jsx";
 
-const ProtectedManagerDashboard = withRoleProtection(ManagerDashboard, ['manager']);
-const ProtectedSuperAdminDashboard = withRoleProtection(SuperAdminDashboard, ['superadmin']);
+const ProtectedManagerDashboard = withRoleProtection(ManagerDashboard, [
+  "manager",
+]);
+const ProtectedSuperAdminDashboard = withRoleProtection(SuperAdminDashboard, [
+  "superadmin",
+]);
 
 // Create a premium F&B themed palette and typography
 const theme = createTheme({
@@ -106,16 +110,22 @@ function App() {
       <BrowserRouter>
         <AuthProvider>
           <Routes>
-            {/* Customer Routes */}
-            <Route path="/" element={<CustomerMenu />} />
+            {/* Smart Home Route - shows HomePage or CustomerMenu based on subdomain */}
+            <Route path="/" element={<SmartHome />} />
 
             {/* Auth Routes */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
             {/* Protected Routes */}
-            <Route path="/manager-dashboard" element={<ProtectedManagerDashboard />} />
-            <Route path="/superadmin-dashboard" element={<ProtectedSuperAdminDashboard />} />
+            <Route
+              path="/manager-dashboard"
+              element={<ProtectedManagerDashboard />}
+            />
+            <Route
+              path="/superadmin-dashboard"
+              element={<ProtectedSuperAdminDashboard />}
+            />
 
             {/* Catch all - redirect to home */}
             <Route path="*" element={<Navigate to="/" replace />} />

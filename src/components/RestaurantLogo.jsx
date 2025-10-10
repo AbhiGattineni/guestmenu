@@ -13,8 +13,8 @@ const RestaurantLogo = ({ logo, name, description }) => {
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        gap: 1,
-        py: { xs: 3, sm: 4 },
+        gap: 2,
+        py: { xs: 2.5, sm: 3 },
         background: "linear-gradient(180deg, #FFFFFF 0%, #FFF9F1 100%)",
         borderBottom: "1px solid rgba(44,26,18,0.06)",
       }}
@@ -29,37 +29,79 @@ const RestaurantLogo = ({ logo, name, description }) => {
         }}
       />
 
+      {/* Logo and Name Row */}
       <Box
         sx={{
-          width: { xs: 96, sm: 120 },
-          height: { xs: 96, sm: 120 },
-          borderRadius: "50%",
-          overflow: "hidden",
-          boxShadow: "0 10px 28px rgba(44,26,18,0.18)",
-          border: "3px solid #C8A97E",
-          mb: 1,
+          display: "flex",
+          alignItems: "center",
+          gap: { xs: 2, sm: 2.5 },
+          zIndex: 1,
         }}
       >
-        <img
-          src={logo}
-          alt={`${name} logo`}
-          style={{ width: "100%", height: "100%", objectFit: "cover" }}
-        />
+        {/* Logo */}
+        {logo && (
+          <Box
+            sx={{
+              width: { xs: 56, sm: 64 },
+              height: { xs: 56, sm: 64 },
+              borderRadius: "50%",
+              overflow: "hidden",
+              boxShadow: "0 4px 12px rgba(44,26,18,0.15)",
+              border: "2px solid #C8A97E",
+              flexShrink: 0,
+            }}
+          >
+            <img
+              src={logo}
+              alt={`${name} logo`}
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            />
+          </Box>
+        )}
+
+        {!logo && (
+          <Box
+            sx={{
+              width: { xs: 56, sm: 64 },
+              height: { xs: 56, sm: 64 },
+              borderRadius: "50%",
+              boxShadow: "0 4px 12px rgba(44,26,18,0.15)",
+              border: "2px solid #C8A97E",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "linear-gradient(135deg, #C8A97E 0%, #F2C14E 100%)",
+              flexShrink: 0,
+            }}
+          >
+            <Typography
+              sx={{
+                color: "#2C1A12",
+                fontSize: { xs: "1.5rem", sm: "1.75rem" },
+                fontWeight: 700,
+              }}
+            >
+              {name?.charAt(0)?.toUpperCase() || "🍽️"}
+            </Typography>
+          </Box>
+        )}
+
+        {/* Store Name */}
+        <Typography
+          variant="h4"
+          component="h1"
+          sx={{
+            color: "primary.main",
+            fontSize: { xs: "1.5rem", sm: "1.875rem" },
+            fontWeight: 700,
+            lineHeight: 1.2,
+          }}
+        >
+          {name}
+        </Typography>
       </Box>
 
-      <Typography
-        variant="h3"
-        component="h1"
-        sx={{
-          textAlign: "center",
-          color: "primary.main",
-          fontSize: { xs: "1.75rem", sm: "2.25rem" },
-          lineHeight: 1.2,
-        }}
-      >
-        {name}
-      </Typography>
-
+      {/* Description */}
       {description && (
         <Typography
           variant="subtitle1"
@@ -68,21 +110,23 @@ const RestaurantLogo = ({ logo, name, description }) => {
             textAlign: "center",
             maxWidth: 720,
             px: 2,
+            zIndex: 1,
           }}
         >
           {description}
         </Typography>
       )}
 
+      {/* Tagline Chip */}
       <Chip
         color="primary"
         variant="filled"
         label="Scan • Order • Enjoy"
         sx={{
-          mt: 1,
           fontWeight: 600,
           backgroundColor: "#C8A97E",
           color: "#2C1A12",
+          zIndex: 1,
         }}
       />
     </Box>
