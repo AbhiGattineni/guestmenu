@@ -47,6 +47,7 @@ import {
   clearManagerStoreId,
   fetchMenuCategories,
   fetchMenuItems,
+  fetchMenuItemsBySubcategory,
   updateMenuItem,
   addCategory,
   toggleCategoryVisibility,
@@ -58,9 +59,18 @@ import {
   updateBanner,
   deleteBanner,
 } from "../services/firebaseService";
+import {
+  fetchSubcategories,
+  addSubcategory,
+  updateSubcategory,
+  deleteSubcategory,
+  toggleSubcategoryVisibility,
+} from "../services/subcategoryService";
 import EditItemDialog from "../components/EditItemDialog";
 import AddCategoryDialog from "../components/AddCategoryDialog";
 import AddItemDialog from "../components/AddItemDialog";
+import AddSubcategoryDialog from "../components/AddSubcategoryDialog";
+import EditSubcategoryDialog from "../components/EditSubcategoryDialog";
 import ImageUploadField from "../components/ImageUploadField";
 import { uploadImage, deleteImage } from "../services/imageUploadService";
 
@@ -86,6 +96,18 @@ const ManagerDashboard = () => {
     useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
   const [categoryToDelete, setCategoryToDelete] = useState(null);
+
+  // Subcategory states
+  const [subcategories, setSubcategories] = useState([]);
+  const [selectedSubcategoryId, setSelectedSubcategoryId] = useState(null); // null = "All"
+  const [addSubcategoryDialogOpen, setAddSubcategoryDialogOpen] =
+    useState(false);
+  const [editSubcategoryDialogOpen, setEditSubcategoryDialogOpen] =
+    useState(false);
+  const [deleteSubcategoryDialogOpen, setDeleteSubcategoryDialogOpen] =
+    useState(false);
+  const [editSubcategory, setEditSubcategory] = useState(null);
+  const [subcategoryToDelete, setSubcategoryToDelete] = useState(null);
 
   // Banner management states
   const [viewMode, setViewMode] = useState("menu"); // "menu" or "banners"
@@ -133,12 +155,21 @@ const ManagerDashboard = () => {
     }
   }, [storeStatus]);
 
-  // 3. Load items when a category is selected
+  // 3. Load items and subcategories when a category is selected
   useEffect(() => {
     if (storeStatus === "assigned" && selectedCategoryId) {
+      loadSubcategories(selectedCategoryId);
       loadItems(selectedCategoryId);
     }
   }, [selectedCategoryId, storeStatus]);
+
+  // 4. Load items when subcategory filter changes
+  useEffect(() => {
+    if (storeStatus === "assigned" && selectedCategoryId) {
+      loadItems(selectedCategoryId, selectedSubcategoryId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSubcategoryId]);
 
   // --- API INTERACTION ---
   const loadCategories = async () => {
@@ -156,15 +187,36 @@ const ManagerDashboard = () => {
     }
   };
 
-  const loadItems = async (categoryId) => {
+  const loadItems = async (categoryId, subcategoryId = null) => {
     setLoadingData(true);
     try {
-      const data = await fetchMenuItems(categoryId, true);
+      let data;
+      if (subcategoryId === null) {
+        // Load all items in category
+        data = await fetchMenuItems(categoryId, true);
+      } else {
+        // Load items in specific subcategory
+        data = await fetchMenuItemsBySubcategory(
+          categoryId,
+          subcategoryId,
+          true
+        );
+      }
       setItems(data);
     } catch (error) {
       console.error("Error loading items:", error);
     } finally {
       setLoadingData(false);
+    }
+  };
+
+  const loadSubcategories = async (categoryId) => {
+    try {
+      const data = await fetchSubcategories(categoryId, true);
+      setSubcategories(data);
+      setSelectedSubcategoryId(null); // Reset to "All"
+    } catch (error) {
+      console.error("Error loading subcategories:", error);
     }
   };
 
@@ -176,6 +228,25 @@ const ManagerDashboard = () => {
 
   const handleSaveItem = async (updatedItem) => {
     try {
+      // Find the original item to check if image changed
+      const originalItem = items.find((item) => item.id === updatedItem.id);
+
+      // If image changed, delete the old image from Firebase Storage
+      if (
+        originalItem &&
+        originalItem.image &&
+        originalItem.image !== updatedItem.image &&
+        originalItem.image.includes("firebasestorage.googleapis.com")
+      ) {
+        try {
+          await deleteImage(originalItem.image);
+          console.log("Old image deleted successfully");
+        } catch (error) {
+          console.error("Error deleting old image:", error);
+          // Continue with update even if image deletion fails
+        }
+      }
+
       await updateMenuItem(updatedItem);
       loadItems(selectedCategoryId);
     } catch (error) {
@@ -189,6 +260,57 @@ const ManagerDashboard = () => {
       loadItems(selectedCategoryId);
     } catch (error) {
       console.error("Error adding item:", error);
+    }
+  };
+
+  // Subcategory handlers
+  const handleAddSubcategory = async (subcategoryData) => {
+    try {
+      await addSubcategory(selectedCategoryId, subcategoryData);
+      loadSubcategories(selectedCategoryId);
+    } catch (error) {
+      console.error("Error adding subcategory:", error);
+    }
+  };
+
+  const handleEditSubcategoryClick = (subcategory) => {
+    setEditSubcategory(subcategory);
+    setEditSubcategoryDialogOpen(true);
+  };
+
+  const handleSaveSubcategory = async (updatedSubcategory) => {
+    try {
+      const { id, ...updates } = updatedSubcategory;
+      await updateSubcategory(id, updates);
+      loadSubcategories(selectedCategoryId);
+    } catch (error) {
+      console.error("Error updating subcategory:", error);
+    }
+  };
+
+  const handleDeleteSubcategoryClick = (subcategory) => {
+    setSubcategoryToDelete(subcategory);
+    setDeleteSubcategoryDialogOpen(true);
+  };
+
+  const handleConfirmDeleteSubcategory = async () => {
+    try {
+      await deleteSubcategory(subcategoryToDelete.id);
+      setDeleteSubcategoryDialogOpen(false);
+      setSubcategoryToDelete(null);
+      loadSubcategories(selectedCategoryId);
+      setSelectedSubcategoryId(null); // Reset to "All"
+    } catch (error) {
+      console.error("Error deleting subcategory:", error);
+    }
+  };
+
+  const handleToggleSubcategoryVisibility = async (subcategoryId, isActive) => {
+    try {
+      await toggleSubcategoryVisibility(subcategoryId, isActive);
+      loadSubcategories(selectedCategoryId);
+    } catch (error) {
+      console.error("Error toggling subcategory visibility:", error);
     }
   };
 
@@ -237,7 +359,7 @@ const ManagerDashboard = () => {
     try {
       clearManagerStoreId(); // Clear the store ID on logout
       await logout();
-      navigate("/login");
+      navigate("/");
     } catch (error) {
       console.error("Error logging out:", error);
     }
@@ -250,6 +372,20 @@ const ManagerDashboard = () => {
 
   const handleConfirmDeleteItem = async () => {
     try {
+      // Delete image from Firebase Storage if it exists
+      if (
+        itemToDelete.image &&
+        itemToDelete.image.includes("firebasestorage.googleapis.com")
+      ) {
+        try {
+          await deleteImage(itemToDelete.image);
+          console.log("Item image deleted successfully");
+        } catch (error) {
+          console.error("Error deleting item image:", error);
+          // Continue with item deletion even if image deletion fails
+        }
+      }
+
       await deleteMenuItem(itemToDelete.id);
       setDeleteItemDialogOpen(false);
       setItemToDelete(null);
@@ -844,30 +980,112 @@ const ManagerDashboard = () => {
                     )}
                 </Box>
 
+                {/* Subcategory Section */}
+                {selectedCategoryId && (
+                  <Box
+                    sx={{
+                      mb: 3,
+                      p: { xs: 1.5, sm: 2 },
+                      bgcolor: "background.paper",
+                      borderRadius: 2,
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+                    }}
+                  >
+                    <Typography
+                      variant="subtitle2"
+                      color="text.secondary"
+                      sx={{
+                        mb: 1.5,
+                        fontSize: { xs: "0.85rem", sm: "0.9rem" },
+                      }}
+                    >
+                      Subheadings:
+                    </Typography>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: 1,
+                        alignItems: "center",
+                      }}
+                    >
+                      {/* "All" Chip */}
+                      <Chip
+                        label="All"
+                        onClick={() => setSelectedSubcategoryId(null)}
+                        color={
+                          selectedSubcategoryId === null ? "primary" : "default"
+                        }
+                        sx={{
+                          fontWeight:
+                            selectedSubcategoryId === null ? 700 : 400,
+                          cursor: "pointer",
+                          fontSize: { xs: "0.75rem", sm: "0.85rem" },
+                        }}
+                      />
+
+                      {/* Subcategory Chips */}
+                      {subcategories.map((sub) => (
+                        <Chip
+                          key={sub.id}
+                          label={sub.name}
+                          onClick={() => setSelectedSubcategoryId(sub.id)}
+                          onDelete={() => handleEditSubcategoryClick(sub)}
+                          deleteIcon={<Edit sx={{ fontSize: "1rem" }} />}
+                          color={
+                            selectedSubcategoryId === sub.id
+                              ? "primary"
+                              : "default"
+                          }
+                          sx={{
+                            fontWeight:
+                              selectedSubcategoryId === sub.id ? 700 : 400,
+                            cursor: "pointer",
+                            opacity: sub.isActive ? 1 : 0.5,
+                            fontSize: { xs: "0.75rem", sm: "0.85rem" },
+                          }}
+                        />
+                      ))}
+
+                      {/* Add Subcategory Button */}
+                      <Button
+                        size="small"
+                        startIcon={<Add />}
+                        onClick={() => setAddSubcategoryDialogOpen(true)}
+                        sx={{
+                          fontSize: { xs: "0.7rem", sm: "0.8rem" },
+                          px: { xs: 1, sm: 1.5 },
+                        }}
+                      >
+                        Add Subheading
+                      </Button>
+                    </Box>
+                  </Box>
+                )}
+
                 {items.length > 0 ? (
                   <Grid container spacing={{ xs: 1.5, sm: 2, md: 3 }}>
                     {items.map((item) => (
-                      <Grid item xs={12} sm={6} md={4} lg={3} key={item.id}>
+                      <Grid item xs={6} sm={4} md={3} lg={3} key={item.id}>
                         <Card
                           sx={{
                             opacity: item.isActive ? 1 : 0.6,
                             border: item.isActive ? "" : "2px dashed #d32f2f",
-                            borderRadius: { xs: 3, sm: 4 },
-                            boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+                            borderRadius: 2,
+                            boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
                             transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                             "&:hover": {
-                              transform: "translateY(-4px)",
-                              boxShadow: "0 12px 32px rgba(0,0,0,0.12)",
+                              transform: "translateY(-2px)",
+                              boxShadow: "0 6px 16px rgba(0,0,0,0.1)",
                             },
                           }}
                         >
                           <CardMedia
                             component="img"
-                            height="180"
                             image={item.image}
                             alt={item.name}
                             sx={{
-                              height: { xs: 160, sm: 180 },
+                              height: { xs: 120, sm: 140 },
                               objectFit: "cover",
                             }}
                           />
@@ -880,17 +1098,18 @@ const ManagerDashboard = () => {
                                 position: "absolute",
                                 top: 8,
                                 right: 8,
-                                fontSize: { xs: "0.688rem", sm: "0.75rem" },
+                                fontSize: "0.688rem",
                               }}
                             />
                           )}
-                          <CardContent sx={{ p: { xs: 2, sm: 2.5 } }}>
+                          <CardContent sx={{ p: { xs: 1.25, sm: 1.5 } }}>
                             <Typography
                               variant="h6"
                               component="div"
                               sx={{
-                                fontSize: { xs: "1rem", sm: "1.125rem" },
+                                fontSize: { xs: "0.875rem", sm: "0.938rem" },
                                 fontWeight: 600,
+                                mb: 0.5,
                               }}
                             >
                               {item.name}
@@ -899,36 +1118,49 @@ const ManagerDashboard = () => {
                               variant="body2"
                               color="text.secondary"
                               sx={{
-                                minHeight: 40,
-                                fontSize: { xs: "0.813rem", sm: "0.875rem" },
-                                lineHeight: 1.5,
+                                minHeight: 32,
+                                fontSize: { xs: "0.688rem", sm: "0.75rem" },
+                                lineHeight: 1.4,
+                                display: "-webkit-box",
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: "vertical",
+                                overflow: "hidden",
                               }}
                             >
                               {item.description}
                             </Typography>
                             <Box
                               sx={{
-                                mt: 1,
+                                mt: 0.75,
                                 display: "flex",
                                 alignItems: "center",
-                                gap: 1,
+                                gap: 0.75,
                               }}
                             >
                               <Chip
-                                label={`$${item.price.toFixed(2)}`}
+                                label={`$${parseFloat(item.price || 0).toFixed(
+                                  2
+                                )}`}
                                 color="primary"
                                 size="small"
+                                sx={{
+                                  height: 22,
+                                  fontSize: "0.75rem",
+                                  fontWeight: 600,
+                                }}
                               />
                               {item.isVegetarian && (
                                 <Grass
                                   titleAccess="Vegetarian"
                                   color="success"
+                                  sx={{ fontSize: 16 }}
                                 />
                               )}
                               {item.isSpicy && (
                                 <LocalFireDepartment
                                   titleAccess="Spicy"
                                   color="warning"
+                                  sx={{ fontSize: 16 }}
                                 />
                               )}
                             </Box>
@@ -936,39 +1168,37 @@ const ManagerDashboard = () => {
                           <CardActions
                             sx={{
                               display: "flex",
-                              gap: 1,
-                              p: { xs: 1.5, sm: 2 },
+                              gap: 0.75,
+                              p: { xs: 1, sm: 1.25 },
                             }}
                           >
                             <Button
-                              startIcon={
-                                <Edit sx={{ fontSize: { xs: 18, sm: 20 } }} />
-                              }
+                              startIcon={<Edit sx={{ fontSize: 16 }} />}
                               fullWidth
                               variant="outlined"
                               size="small"
                               onClick={() => handleEditClick(item)}
                               sx={{
-                                fontSize: { xs: "0.813rem", sm: "0.875rem" },
+                                fontSize: "0.75rem",
                                 fontWeight: 600,
-                                borderRadius: 2,
+                                borderRadius: 1.5,
+                                py: 0.5,
                               }}
                             >
                               Edit
                             </Button>
                             <Button
-                              startIcon={
-                                <Delete sx={{ fontSize: { xs: 18, sm: 20 } }} />
-                              }
+                              startIcon={<Delete sx={{ fontSize: 16 }} />}
                               fullWidth
                               variant="outlined"
                               size="small"
                               color="error"
                               onClick={() => handleDeleteItemClick(item)}
                               sx={{
-                                fontSize: { xs: "0.813rem", sm: "0.875rem" },
+                                fontSize: "0.75rem",
                                 fontWeight: 600,
-                                borderRadius: 2,
+                                borderRadius: 1.5,
+                                py: 0.5,
                               }}
                             >
                               Delete
@@ -996,6 +1226,8 @@ const ManagerDashboard = () => {
             onClose={() => setEditDialogOpen(false)}
             item={editItem}
             onSave={handleSaveItem}
+            onUpload={handleImageUpload}
+            subcategories={subcategories}
           />
           <AddCategoryDialog
             open={addCategoryDialogOpen}
@@ -1007,6 +1239,20 @@ const ManagerDashboard = () => {
             onClose={() => setAddItemDialogOpen(false)}
             onSave={handleAddItem}
             categoryId={selectedCategoryId}
+            onUpload={handleImageUpload}
+            subcategories={subcategories}
+          />
+          <AddSubcategoryDialog
+            open={addSubcategoryDialogOpen}
+            onClose={() => setAddSubcategoryDialogOpen(false)}
+            onSave={handleAddSubcategory}
+            categoryId={selectedCategoryId}
+          />
+          <EditSubcategoryDialog
+            open={editSubcategoryDialogOpen}
+            onClose={() => setEditSubcategoryDialogOpen(false)}
+            subcategory={editSubcategory}
+            onSave={handleSaveSubcategory}
           />
 
           {/* Delete Item Confirmation Dialog */}
@@ -1065,6 +1311,37 @@ const ManagerDashboard = () => {
                 variant="contained"
               >
                 Delete Category
+              </Button>
+            </DialogActions>
+          </Dialog>
+
+          {/* Delete Subcategory Confirmation Dialog */}
+          <Dialog
+            open={deleteSubcategoryDialogOpen}
+            onClose={() => setDeleteSubcategoryDialogOpen(false)}
+          >
+            <DialogTitle>Delete Subheading</DialogTitle>
+            <DialogContent>
+              <DialogContentText>
+                Are you sure you want to delete the subheading "
+                {subcategoryToDelete?.name}"? Items in this subheading will not
+                be deleted, but will become uncategorized within the parent
+                category.
+              </DialogContentText>
+            </DialogContent>
+            <DialogActions>
+              <Button
+                onClick={() => setDeleteSubcategoryDialogOpen(false)}
+                color="primary"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleConfirmDeleteSubcategory}
+                color="error"
+                variant="contained"
+              >
+                Delete Subheading
               </Button>
             </DialogActions>
           </Dialog>

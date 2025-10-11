@@ -10,28 +10,18 @@ import {
   Typography,
   CircularProgress,
   IconButton,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
 } from "@mui/material";
 import { Close } from "@mui/icons-material";
-import ImageUploadField from "./ImageUploadField";
 
-const AddItemDialog = ({
-  open,
-  onClose,
-  onSave,
-  categoryId,
-  onUpload,
-  subcategories = [],
-}) => {
+/**
+ * AddSubcategoryDialog Component
+ * Dialog for adding a new subheading/subcategory within a category
+ */
+const AddSubcategoryDialog = ({ open, onClose, onSave, categoryId }) => {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    price: "",
-    image: "",
-    subcategoryId: "",
+    order: 0,
   });
   const [loading, setLoading] = useState(false);
 
@@ -40,9 +30,7 @@ const AddItemDialog = ({
       setFormData({
         name: "",
         description: "",
-        price: "",
-        image: "",
-        subcategoryId: "",
+        order: 0,
       });
     }
   }, [open]);
@@ -57,23 +45,11 @@ const AddItemDialog = ({
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-
     try {
-      // Ensure price is a number
-      const itemData = {
-        ...formData,
-        price: parseFloat(formData.price),
-      };
-
-      // Only include subcategoryId if it's not empty
-      if (!itemData.subcategoryId) {
-        delete itemData.subcategoryId;
-      }
-
-      await onSave(itemData);
+      await onSave(formData);
       onClose();
     } catch (error) {
-      console.error("Error saving item:", error);
+      console.error("Error saving subcategory:", error);
     } finally {
       setLoading(false);
     }
@@ -96,7 +72,7 @@ const AddItemDialog = ({
           }}
         >
           <Typography variant="h5" sx={{ fontWeight: 700 }}>
-            Add New Item
+            Add New Subheading
           </Typography>
           <IconButton onClick={handleClose} disabled={loading}>
             <Close />
@@ -107,78 +83,44 @@ const AddItemDialog = ({
       <form onSubmit={handleSubmit}>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            Add a new item to the selected category.
+            Create a subheading to organize items within this category (e.g.,
+            "Hot Drinks", "Cold Drinks", "Appetizers", "Main Course")
           </Typography>
 
           <TextField
             fullWidth
-            label="Item Name"
+            label="Subheading Name"
             value={formData.name}
             onChange={handleChange("name")}
             required
             disabled={loading}
             sx={{ mb: 2 }}
-            placeholder="e.g., Classic Burger"
+            placeholder="e.g., Hot Drinks"
             autoFocus
           />
 
           <TextField
             fullWidth
-            label="Description"
+            label="Description (Optional)"
             value={formData.description}
             onChange={handleChange("description")}
-            required
             disabled={loading}
             multiline
             rows={2}
             sx={{ mb: 2 }}
-            placeholder="Brief description of the item"
+            placeholder="Brief description of this section"
           />
 
           <TextField
             fullWidth
-            label="Price"
-            value={formData.price}
-            onChange={handleChange("price")}
-            required
-            disabled={loading}
+            label="Display Order"
             type="number"
-            sx={{ mb: 2 }}
-            placeholder="e.g., 9.99"
-            inputProps={{ step: "0.01", min: "0" }}
-          />
-
-          {subcategories.length > 0 && (
-            <FormControl fullWidth sx={{ mb: 2 }}>
-              <InputLabel>Subheading (Optional)</InputLabel>
-              <Select
-                value={formData.subcategoryId}
-                onChange={handleChange("subcategoryId")}
-                label="Subheading (Optional)"
-                disabled={loading}
-              >
-                <MenuItem value="">
-                  <em>None</em>
-                </MenuItem>
-                {subcategories.map((sub) => (
-                  <MenuItem key={sub.id} value={sub.id}>
-                    {sub.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          )}
-
-          <ImageUploadField
-            label="Item Image"
-            value={formData.image}
-            onChange={(imageUrl) =>
-              setFormData((prev) => ({ ...prev, image: imageUrl }))
-            }
-            onUpload={onUpload}
-            folder="items"
+            value={formData.order}
+            onChange={handleChange("order")}
             disabled={loading}
-            helperText="Upload an image or paste an image URL"
+            sx={{ mb: 2 }}
+            inputProps={{ min: "0" }}
+            helperText="Order in which subheadings will appear (0 = first)"
           />
         </DialogContent>
 
@@ -195,7 +137,7 @@ const AddItemDialog = ({
               background: "linear-gradient(135deg, #8C3A2B 0%, #C66F53 100%)",
             }}
           >
-            {loading ? <CircularProgress size={24} /> : "Add Item"}
+            {loading ? <CircularProgress size={24} /> : "Add Subheading"}
           </Button>
         </DialogActions>
       </form>
@@ -203,4 +145,4 @@ const AddItemDialog = ({
   );
 };
 
-export default AddItemDialog;
+export default AddSubcategoryDialog;

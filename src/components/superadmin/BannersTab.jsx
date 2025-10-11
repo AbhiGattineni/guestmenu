@@ -28,6 +28,8 @@ import {
   updateStoreBanner,
   deleteStoreBanner,
 } from "../../services/superAdminService";
+import ImageUploadField from "../ImageUploadField";
+import { uploadImage, deleteImage } from "../../services/imageUploadService";
 
 /**
  * Banners Tab
@@ -95,6 +97,14 @@ const BannersTab = () => {
     }
   };
 
+  // Image upload handler for the selected store
+  const handleImageUpload = async (file, folder) => {
+    if (!selectedStore) {
+      throw new Error("Please select a store first");
+    }
+    return await uploadImage(file, folder, selectedStore);
+  };
+
   const handleCreateBanner = async () => {
     try {
       setError("");
@@ -123,8 +133,27 @@ const BannersTab = () => {
     try {
       setError("");
       if (!bannerForm.title || !bannerForm.image) {
-        setError("Title and image URL are required");
+        setError("Title and image are required");
         return;
+      }
+
+      // Find the original banner to check if image changed
+      const originalBanner = banners.find((b) => b.id === bannerForm.id);
+
+      // If image changed, delete the old image from Firebase Storage
+      if (
+        originalBanner &&
+        originalBanner.image &&
+        originalBanner.image !== bannerForm.image &&
+        originalBanner.image.includes("firebasestorage.googleapis.com")
+      ) {
+        try {
+          await deleteImage(originalBanner.image);
+          console.log("Old banner image deleted successfully");
+        } catch (error) {
+          console.error("Error deleting old banner image:", error);
+          // Continue with update even if image deletion fails
+        }
       }
 
       await updateStoreBanner(selectedStore, bannerForm.id, {
@@ -145,6 +174,20 @@ const BannersTab = () => {
 
   const handleDeleteBanner = async () => {
     try {
+      // Delete image from Firebase Storage if it exists
+      if (
+        bannerToDelete.image &&
+        bannerToDelete.image.includes("firebasestorage.googleapis.com")
+      ) {
+        try {
+          await deleteImage(bannerToDelete.image);
+          console.log("Banner image deleted successfully");
+        } catch (error) {
+          console.error("Error deleting banner image:", error);
+          // Continue with deletion even if image deletion fails
+        }
+      }
+
       await deleteStoreBanner(selectedStore, bannerToDelete.id);
       setSuccess("Banner deleted successfully!");
       setDeleteDialogOpen(false);
@@ -349,41 +392,17 @@ const BannersTab = () => {
               rows={2}
               placeholder="Brief description or tagline"
             />
-            <TextField
-              label="Image URL"
+            <ImageUploadField
+              label="Banner Image"
               value={bannerForm.image}
-              onChange={(e) =>
-                setBannerForm({ ...bannerForm, image: e.target.value })
+              onChange={(imageUrl) =>
+                setBannerForm({ ...bannerForm, image: imageUrl })
               }
-              fullWidth
+              onUpload={handleImageUpload}
+              folder="banners"
+              helperText="Upload a banner image or paste an image URL"
               required
-              placeholder="https://example.com/banner.jpg"
             />
-            {bannerForm.image && (
-              <Box
-                sx={{
-                  width: "100%",
-                  height: 200,
-                  borderRadius: 2,
-                  overflow: "hidden",
-                  border: "1px solid",
-                  borderColor: "divider",
-                }}
-              >
-                <img
-                  src={bannerForm.image}
-                  alt="Preview"
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "cover",
-                  }}
-                  onError={(e) => {
-                    e.target.style.display = "none";
-                  }}
-                />
-              </Box>
-            )}
             {error && (
               <Alert severity="error" onClose={() => setError("")}>
                 {error}

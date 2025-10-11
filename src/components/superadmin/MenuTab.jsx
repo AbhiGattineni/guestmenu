@@ -29,6 +29,8 @@ import {
   FormControlLabel,
 } from "@mui/material";
 import { Add, Edit, Delete } from "@mui/icons-material";
+import ImageUploadField from "../ImageUploadField";
+import { deleteImage, uploadImage } from "../../services/imageUploadService";
 import {
   getAllStores,
   getStoreCategories,
@@ -39,6 +41,7 @@ import {
   createStoreMenuItem,
   updateStoreMenuItem,
   deleteStoreMenuItem,
+  getStoreSubcategories,
 } from "../../services/superAdminService";
 
 /**
@@ -49,6 +52,7 @@ const MenuTab = () => {
   const [stores, setStores] = useState([]);
   const [selectedStore, setSelectedStore] = useState("");
   const [categories, setCategories] = useState([]);
+  const [subcategories, setSubcategories] = useState([]);
   const [menuItems, setMenuItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentView, setCurrentView] = useState(0); // 0: Categories, 1: Items
@@ -109,6 +113,7 @@ const MenuTab = () => {
     description: "",
     price: "",
     categoryId: "",
+    subcategoryId: "",
     image: "",
     isVegetarian: false,
     isSpicy: false,
@@ -147,18 +152,29 @@ const MenuTab = () => {
 
     try {
       setLoading(true);
-      const [categoriesData, itemsData] = await Promise.all([
+      const [categoriesData, itemsData, subcategoriesData] = await Promise.all([
         getStoreCategories(selectedStore),
         getStoreMenuItems(selectedStore),
+        getStoreSubcategories(selectedStore), // Fetch all subcategories for the store
       ]);
       setCategories(categoriesData);
       setMenuItems(itemsData);
+      setSubcategories(subcategoriesData);
+      console.log("📋 Loaded subcategories:", subcategoriesData);
     } catch (error) {
       console.error("Error fetching menu data:", error);
       setError("Failed to load menu data");
     } finally {
       setLoading(false);
     }
+  };
+
+  // Image upload handler
+  const handleImageUpload = async (file, folder) => {
+    if (!selectedStore) {
+      throw new Error("Please select a store first");
+    }
+    return await uploadImage(file, folder, selectedStore);
   };
 
   // Category handlers
@@ -234,7 +250,7 @@ const MenuTab = () => {
         return;
       }
 
-      await createStoreMenuItem(selectedStore, {
+      const itemData = {
         name: itemForm.name,
         description: itemForm.description,
         price: parseFloat(itemForm.price),
@@ -243,7 +259,14 @@ const MenuTab = () => {
         isVegetarian: itemForm.isVegetarian,
         isSpicy: itemForm.isSpicy,
         isActive: itemForm.isActive,
-      });
+      };
+
+      // Only include subcategoryId if it's not empty
+      if (itemForm.subcategoryId) {
+        itemData.subcategoryId = itemForm.subcategoryId;
+      }
+
+      await createStoreMenuItem(selectedStore, itemData);
 
       setSuccess("Menu item created successfully!");
       setOpenItemDialog(false);
@@ -263,7 +286,26 @@ const MenuTab = () => {
         return;
       }
 
-      await updateStoreMenuItem(selectedStore, itemForm.id, {
+      // Find the original item to check if image changed
+      const originalItem = menuItems.find((item) => item.id === itemForm.id);
+
+      // If image changed, delete the old image from Firebase Storage
+      if (
+        originalItem &&
+        originalItem.image &&
+        originalItem.image !== itemForm.image &&
+        originalItem.image.includes("firebasestorage.googleapis.com")
+      ) {
+        try {
+          await deleteImage(originalItem.image);
+          console.log("Old item image deleted successfully");
+        } catch (error) {
+          console.error("Error deleting old item image:", error);
+          // Continue with update even if image deletion fails
+        }
+      }
+
+      const itemData = {
         name: itemForm.name,
         description: itemForm.description,
         price: parseFloat(itemForm.price),
@@ -272,7 +314,14 @@ const MenuTab = () => {
         isVegetarian: itemForm.isVegetarian,
         isSpicy: itemForm.isSpicy,
         isActive: itemForm.isActive,
-      });
+      };
+
+      // Only include subcategoryId if it's not empty
+      if (itemForm.subcategoryId) {
+        itemData.subcategoryId = itemForm.subcategoryId;
+      }
+
+      await updateStoreMenuItem(selectedStore, itemForm.id, itemData);
 
       setSuccess("Menu item updated successfully!");
       setOpenItemDialog(false);
@@ -286,6 +335,20 @@ const MenuTab = () => {
 
   const handleDeleteItem = async () => {
     try {
+      // Delete image from Firebase Storage if it exists
+      if (
+        itemToDelete.image &&
+        itemToDelete.image.includes("firebasestorage.googleapis.com")
+      ) {
+        try {
+          await deleteImage(itemToDelete.image);
+          console.log("Item image deleted successfully");
+        } catch (error) {
+          console.error("Error deleting item image:", error);
+          // Continue with item deletion even if image deletion fails
+        }
+      }
+
       await deleteStoreMenuItem(selectedStore, itemToDelete.id);
       setSuccess("Menu item deleted successfully!");
       setDeleteDialogOpen(false);
@@ -309,6 +372,7 @@ const MenuTab = () => {
       description: "",
       price: "",
       categoryId: "",
+      subcategoryId: "",
       image: "",
       isVegetarian: false,
       isSpicy: false,
@@ -330,12 +394,20 @@ const MenuTab = () => {
   };
 
   const openEditItemDialog = (item) => {
+    console.log("🔧 Opening edit dialog for item:", item);
+    console.log("📋 Current subcategories:", subcategories);
+    console.log(
+      "🔍 Filtered subcategories for category:",
+      subcategories.filter((sub) => sub.categoryId === item.categoryId)
+    );
+
     setItemForm({
       id: item.id,
       name: item.name || "",
       description: item.description || "",
       price: item.price || "",
       categoryId: item.categoryId || "",
+      subcategoryId: item.subcategoryId || "",
       image: item.image || "",
       isVegetarian: item.isVegetarian || false,
       isSpicy: item.isSpicy || false,
@@ -689,6 +761,19 @@ const MenuTab = () => {
           {isEdit ? "Edit Menu Item" : "Create Menu Item"}
         </DialogTitle>
         <DialogContent>
+          {/* Debug Info */}
+          <Alert severity="info" sx={{ mb: 2 }}>
+            <Typography variant="caption">
+              DEBUG: categoryId = "{itemForm.categoryId}" | subcategoryId = "
+              {itemForm.subcategoryId}" | Subcategories loaded:{" "}
+              {subcategories.length} | For this category:{" "}
+              {
+                subcategories.filter(
+                  (sub) => sub.categoryId === itemForm.categoryId
+                ).length
+              }
+            </Typography>
+          </Alert>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
             <TextField
               label="Item Name"
@@ -709,41 +794,94 @@ const MenuTab = () => {
               multiline
               rows={2}
             />
-            <Box sx={{ display: "flex", gap: 2 }}>
-              <TextField
-                label="Price"
-                type="number"
-                value={itemForm.price}
-                onChange={(e) =>
-                  setItemForm({ ...itemForm, price: e.target.value })
-                }
-                required
-                sx={{ flex: 1 }}
-              />
-              <FormControl sx={{ flex: 1 }} required>
-                <InputLabel>Category</InputLabel>
-                <Select
-                  value={itemForm.categoryId}
-                  label="Category"
-                  onChange={(e) =>
-                    setItemForm({ ...itemForm, categoryId: e.target.value })
-                  }
-                >
-                  {categories.map((cat) => (
-                    <MenuItem key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Box>
             <TextField
-              label="Image URL"
-              value={itemForm.image}
+              label="Price"
+              type="number"
+              value={itemForm.price}
               onChange={(e) =>
-                setItemForm({ ...itemForm, image: e.target.value })
+                setItemForm({ ...itemForm, price: e.target.value })
               }
+              required
               fullWidth
+            />
+
+            <FormControl fullWidth required>
+              <InputLabel>Category</InputLabel>
+              <Select
+                value={itemForm.categoryId}
+                label="Category"
+                onChange={(e) => {
+                  // Reset subcategoryId when category changes
+                  setItemForm({
+                    ...itemForm,
+                    categoryId: e.target.value,
+                    subcategoryId: "", // Clear subcategory when category changes
+                  });
+                }}
+              >
+                {categories.map((cat) => (
+                  <MenuItem key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            {/* Subheading Dropdown - Always visible */}
+            <FormControl fullWidth disabled={!itemForm.categoryId}>
+              <InputLabel>Subheading (Optional)</InputLabel>
+              <Select
+                value={itemForm.subcategoryId || ""}
+                label="Subheading (Optional)"
+                onChange={(e) =>
+                  setItemForm({
+                    ...itemForm,
+                    subcategoryId: e.target.value,
+                  })
+                }
+              >
+                <MenuItem value="">
+                  <em>None - No subheading</em>
+                </MenuItem>
+                {itemForm.categoryId &&
+                  subcategories
+                    .filter((sub) => sub.categoryId === itemForm.categoryId)
+                    .map((sub) => (
+                      <MenuItem key={sub.id} value={sub.id}>
+                        {sub.name} {sub.description && `- ${sub.description}`}
+                      </MenuItem>
+                    ))}
+              </Select>
+              {!itemForm.categoryId ? (
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ mt: 0.5, ml: 1.5, display: "block" }}
+                >
+                  ⬆️ Please select a category first
+                </Typography>
+              ) : subcategories.filter(
+                  (sub) => sub.categoryId === itemForm.categoryId
+                ).length === 0 ? (
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ mt: 0.5, ml: 1.5, display: "block" }}
+                >
+                  💡 No subheadings for this category. Create them in Manager
+                  Dashboard.
+                </Typography>
+              ) : null}
+            </FormControl>
+            <ImageUploadField
+              label="Item Image"
+              value={itemForm.image}
+              onChange={(imageUrl) =>
+                setItemForm({ ...itemForm, image: imageUrl })
+              }
+              onUpload={handleImageUpload}
+              folder="items"
+              helperText="Upload an image or paste an image URL"
             />
             <Box sx={{ display: "flex", gap: 2 }}>
               <FormControlLabel

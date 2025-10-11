@@ -16,10 +16,39 @@ import {
   orderBy,
   Timestamp,
 } from "firebase/firestore";
-import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+} from "firebase/auth";
+import { initializeApp } from "firebase/app";
 
 const db = getFirestore();
 const auth = getAuth();
+
+// Secondary app for creating users without logging out the current admin
+let secondaryApp = null;
+let secondaryAuth = null;
+
+const getSecondaryAuth = () => {
+  if (!secondaryAuth) {
+    // Get Firebase config from the main app
+    const firebaseConfig = {
+      apiKey: "AIzaSyAN5TgXDgaSeW1u3XlN16G097P0ly4Db6Y",
+      authDomain: "menuscanner-6f332.firebaseapp.com",
+      projectId: "menuscanner-6f332",
+      storageBucket: "menuscanner-6f332.firebasestorage.app",
+      messagingSenderId: "900061990435",
+      appId: "1:900061990435:web:507b2f140ffa1f2491ab96",
+      measurementId: "G-M04V0HHX3V",
+    };
+
+    // Initialize secondary app with a different name
+    secondaryApp = initializeApp(firebaseConfig, "Secondary");
+    secondaryAuth = getAuth(secondaryApp);
+  }
+  return secondaryAuth;
+};
 
 /**
  * =================
@@ -121,13 +150,19 @@ export const getAllUsers = async () => {
  */
 export const createUser = async (email, password, role, storeId = null) => {
   try {
-    // Create user in Firebase Auth
+    // Use secondary auth to create user without logging out the current admin
+    const secondaryAuth = getSecondaryAuth();
+
+    // Create user in Firebase Auth using secondary instance
     const userCredential = await createUserWithEmailAndPassword(
-      auth,
+      secondaryAuth,
       email,
       password
     );
     const userId = userCredential.user.uid;
+
+    // Sign out from secondary auth immediately to avoid session conflicts
+    await secondaryAuth.signOut();
 
     // Create user document in Firestore
     const userData = {
@@ -475,6 +510,116 @@ export const deleteStoreMenuItem = async (storeId, itemId) => {
     await deleteDoc(doc(db, `clients/${storeId}/menuItems`, itemId));
   } catch (error) {
     console.error("Error deleting menu item:", error);
+    throw error;
+  }
+};
+
+/**
+ * =================
+ * SUBCATEGORY MANAGEMENT (Cross-Store)
+ * =================
+ */
+
+/**
+ * Get subcategories for a specific store and category
+ */
+export const getStoreSubcategories = async (storeId, categoryId = null) => {
+  try {
+    const subcategoriesRef = collection(db, `clients/${storeId}/subcategories`);
+    let q;
+
+    if (categoryId) {
+      q = query(
+        subcategoriesRef,
+        where("categoryId", "==", categoryId),
+        orderBy("order", "asc")
+      );
+    } else {
+      q = query(subcategoriesRef, orderBy("order", "asc"));
+    }
+
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+  } catch (error) {
+    // If composite index is missing, fetch all and sort in memory
+    console.warn("Composite index missing, falling back to in-memory sort");
+    const subcategoriesRef = collection(db, `clients/${storeId}/subcategories`);
+    let q = categoryId
+      ? query(subcategoriesRef, where("categoryId", "==", categoryId))
+      : subcategoriesRef;
+
+    const snapshot = await getDocs(q);
+    const subcategories = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    return subcategories.sort((a, b) => (a.order || 0) - (b.order || 0));
+  }
+};
+
+/**
+ * Create subcategory for a store
+ */
+export const createStoreSubcategory = async (
+  storeId,
+  categoryId,
+  subcategoryData
+) => {
+  try {
+    const subcategoriesRef = collection(db, `clients/${storeId}/subcategories`);
+    const newSubcategoryRef = doc(subcategoriesRef);
+
+    await setDoc(newSubcategoryRef, {
+      categoryId,
+      name: subcategoryData.name,
+      description: subcategoryData.description || "",
+      order: subcategoryData.order || 0,
+      isActive: true,
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
+    });
+
+    return { id: newSubcategoryRef.id, categoryId, ...subcategoryData };
+  } catch (error) {
+    console.error("Error creating subcategory:", error);
+    throw error;
+  }
+};
+
+/**
+ * Update subcategory for a store
+ */
+export const updateStoreSubcategory = async (
+  storeId,
+  subcategoryId,
+  updates
+) => {
+  try {
+    await updateDoc(
+      doc(db, `clients/${storeId}/subcategories`, subcategoryId),
+      {
+        ...updates,
+        updatedAt: Timestamp.now(),
+      }
+    );
+  } catch (error) {
+    console.error("Error updating subcategory:", error);
+    throw error;
+  }
+};
+
+/**
+ * Delete subcategory for a store
+ */
+export const deleteStoreSubcategory = async (storeId, subcategoryId) => {
+  try {
+    await deleteDoc(doc(db, `clients/${storeId}/subcategories`, subcategoryId));
+  } catch (error) {
+    console.error("Error deleting subcategory:", error);
     throw error;
   }
 };

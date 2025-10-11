@@ -27,6 +27,8 @@ import {
   updateStore,
   deleteStore,
 } from "../../services/superAdminService";
+import ImageUploadField from "../ImageUploadField";
+import { uploadImage, deleteImage } from "../../services/imageUploadService";
 
 /**
  * Stores Tab
@@ -68,6 +70,15 @@ const StoresTab = () => {
     }
   };
 
+  // Handle image upload for store logos
+  const handleImageUpload = async (file, folder) => {
+    if (!formData.id && !selectedStore?.id) {
+      throw new Error("Please save the store first or provide a store ID");
+    }
+    const storeId = formData.id || selectedStore?.id;
+    return await uploadImage(file, folder, storeId);
+  };
+
   const handleCreateStore = async () => {
     try {
       setError("");
@@ -102,6 +113,20 @@ const StoresTab = () => {
         return;
       }
 
+      // Delete old logo if it was changed and was a Firebase Storage URL
+      if (
+        selectedStore.logo &&
+        selectedStore.logo !== formData.logo &&
+        selectedStore.logo.includes("firebasestorage.googleapis.com")
+      ) {
+        try {
+          await deleteImage(selectedStore.logo);
+        } catch (error) {
+          console.error("Error deleting old logo:", error);
+          // Continue with update even if delete fails
+        }
+      }
+
       await updateStore(selectedStore.id, {
         name: formData.name,
         description: formData.description,
@@ -122,6 +147,19 @@ const StoresTab = () => {
 
   const handleDeleteStore = async () => {
     try {
+      // Delete store logo from Firebase Storage if it exists
+      if (
+        selectedStore.logo &&
+        selectedStore.logo.includes("firebasestorage.googleapis.com")
+      ) {
+        try {
+          await deleteImage(selectedStore.logo);
+        } catch (error) {
+          console.error("Error deleting store logo:", error);
+          // Continue with delete even if logo deletion fails
+        }
+      }
+
       await deleteStore(selectedStore.id);
       setSuccess("Store deleted successfully!");
       setDeleteDialogOpen(false);
@@ -334,14 +372,15 @@ const StoresTab = () => {
               multiline
               rows={2}
             />
-            <TextField
-              label="Logo URL"
+            <ImageUploadField
+              label="Store Logo"
               value={formData.logo}
-              onChange={(e) =>
-                setFormData({ ...formData, logo: e.target.value })
+              onChange={(logoUrl) =>
+                setFormData({ ...formData, logo: logoUrl })
               }
-              fullWidth
-              helperText="URL to store logo image"
+              onUpload={handleImageUpload}
+              folder="logos"
+              helperText="Upload a logo or paste an image URL"
             />
             <TextField
               label="Address"

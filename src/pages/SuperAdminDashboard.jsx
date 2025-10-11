@@ -18,7 +18,6 @@ import {
   Restaurant,
   Image,
   Logout,
-  Home,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -66,7 +65,7 @@ const SuperAdminDashboard = () => {
   const handleLogout = async () => {
     try {
       await logout();
-      navigate("/login");
+      navigate("/");
     } catch (error) {
       console.error("Error logging out:", error);
     }
@@ -170,43 +169,6 @@ const SuperAdminDashboard = () => {
               alignItems: "center",
             }}
           >
-            <Button
-              startIcon={
-                <Home
-                  sx={{
-                    display: { xs: "none", sm: "block" },
-                    fontSize: { xs: 18, sm: 20 },
-                  }}
-                />
-              }
-              onClick={() => navigate("/")}
-              variant="outlined"
-              size="small"
-              sx={{
-                color: "white",
-                borderColor: "rgba(242, 193, 78, 0.3)",
-                px: { xs: 0, sm: 1.5, md: 2.5 },
-                minWidth: { xs: 32, sm: "auto" },
-                width: { xs: 32, sm: "auto" },
-                height: { xs: 32, sm: 36, md: 40 },
-                borderRadius: { xs: 1.5, sm: 2 },
-                fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                "&:hover": {
-                  borderColor: "#F2C14E",
-                  bgcolor: "rgba(242, 193, 78, 0.08)",
-                },
-              }}
-            >
-              <Home
-                sx={{ display: { xs: "block", sm: "none" }, fontSize: 18 }}
-              />
-              <Box
-                component="span"
-                sx={{ display: { xs: "none", sm: "inline" } }}
-              >
-                Home
-              </Box>
-            </Button>
             <Button
               startIcon={
                 <Logout

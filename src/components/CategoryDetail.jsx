@@ -9,35 +9,59 @@ import {
   CardContent,
   CircularProgress,
   Button,
+  Divider,
 } from "@mui/material";
 import { ArrowBack, LocalFireDepartment, Grass } from "@mui/icons-material";
 import { fetchMenuItems } from "../services/firebaseService";
+import { fetchSubcategories } from "../services/subcategoryService";
 
 /**
  * CategoryDetail Component
- * Displays menu items for a selected category
+ * Displays menu items for a selected category with subheadings (subcategories)
  */
 const CategoryDetail = ({ category, onBack }) => {
   const [items, setItems] = useState([]);
+  const [subcategories, setSubcategories] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadItems = async () => {
+    const loadData = async () => {
       setLoading(true);
       try {
-        const data = await fetchMenuItems(category.id);
-        setItems(data);
+        // Fetch items and subcategories in parallel
+        const [itemsData, subcategoriesData] = await Promise.all([
+          fetchMenuItems(category.id),
+          fetchSubcategories(category.id, false), // false = only active subcategories
+        ]);
+        setItems(itemsData);
+        setSubcategories(subcategoriesData);
       } catch (error) {
-        console.error("Error loading menu items:", error);
+        console.error("Error loading menu data:", error);
       } finally {
         setLoading(false);
       }
     };
 
     if (category) {
-      loadItems();
+      loadData();
     }
   }, [category]);
+
+  // Group items by subcategory
+  const groupedItems = React.useMemo(() => {
+    const groups = {};
+
+    // Group items by subcategoryId
+    items.forEach((item) => {
+      const key = item.subcategoryId || "none";
+      if (!groups[key]) {
+        groups[key] = [];
+      }
+      groups[key].push(item);
+    });
+
+    return groups;
+  }, [items]);
 
   if (loading) {
     return (
@@ -138,7 +162,7 @@ const CategoryDetail = ({ category, onBack }) => {
           </Box>
         </Box>
 
-        {/* Menu Items Grid */}
+        {/* Menu Items - Organized by Subheadings */}
         {items.length === 0 ? (
           <Typography
             variant="body1"
@@ -149,127 +173,329 @@ const CategoryDetail = ({ category, onBack }) => {
             No items available in this category.
           </Typography>
         ) : (
-          <Grid container spacing={{ xs: 1.5, sm: 2, md: 3 }}>
-            {items.map((item) => (
-              <Grid item xs={12} sm={6} md={4} key={item.id}>
-                <Card
-                  sx={{
-                    height: "100%",
-                    display: "flex",
-                    flexDirection: "column",
-                    borderRadius: { xs: 3, sm: 4 },
-                    boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
-                    background:
-                      "linear-gradient(135deg, #FFFFFF 0%, #FFFBF7 100%)",
-                    border: "1px solid rgba(200, 169, 126, 0.1)",
-                    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                    overflow: "hidden",
-                    "&:hover": {
-                      transform: "translateY(-4px)",
-                      boxShadow: "0 12px 40px rgba(140, 58, 43, 0.15)",
-                      border: "1px solid rgba(200, 169, 126, 0.3)",
-                    },
-                    "&:active": {
-                      transform: "translateY(-2px)",
-                    },
-                  }}
-                >
-                  {/* Item Image */}
-                  <CardMedia
-                    component="img"
-                    height={200}
-                    image={item.image}
-                    alt={item.name}
-                    sx={{
-                      objectFit: "cover",
-                      height: { xs: 180, sm: 200 },
-                    }}
-                  />
+          <Box>
+            {/* Render items with subheadings */}
+            {subcategories.map((subcategory) => {
+              const subcategoryItems = groupedItems[subcategory.id] || [];
+              if (subcategoryItems.length === 0) return null;
 
-                  <CardContent sx={{ flexGrow: 1, p: { xs: 2, sm: 2.5 } }}>
-                    {/* Item Name and Badges */}
-                    <Box
-                      sx={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "flex-start",
-                        mb: 1,
-                        gap: 1,
-                      }}
-                    >
+              return (
+                <Box key={subcategory.id} sx={{ mb: { xs: 4, sm: 5 } }}>
+                  {/* Subheading Header */}
+                  <Box
+                    sx={{
+                      mb: { xs: 2, sm: 3 },
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 2,
+                    }}
+                  >
+                    <Box>
                       <Typography
-                        variant="h6"
+                        variant="h5"
                         sx={{
                           fontWeight: 700,
-                          color: "text.primary",
-                          fontSize: { xs: "1rem", sm: "1.1rem" },
-                          lineHeight: 1.3,
+                          fontSize: { xs: "1.25rem", sm: "1.5rem" },
+                          color: "#8C3A2B",
+                          mb: subcategory.description ? 0.5 : 0,
                         }}
                       >
-                        {item.name}
+                        {subcategory.name}
                       </Typography>
-                      <Box sx={{ display: "flex", gap: 0.5, flexShrink: 0 }}>
-                        {item.isVegetarian && (
-                          <Grass
-                            sx={{
-                              fontSize: { xs: 16, sm: 18 },
-                              color: "#4CAF50",
-                              filter:
-                                "drop-shadow(0 1px 2px rgba(76, 175, 80, 0.3))",
-                            }}
-                            titleAccess="Vegetarian"
-                          />
-                        )}
-                        {item.isSpicy && (
-                          <LocalFireDepartment
-                            sx={{
-                              fontSize: { xs: 16, sm: 18 },
-                              color: "#FF5722",
-                              filter:
-                                "drop-shadow(0 1px 2px rgba(255, 87, 34, 0.3))",
-                            }}
-                            titleAccess="Spicy"
-                          />
-                        )}
-                      </Box>
+                      {subcategory.description && (
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          sx={{
+                            fontSize: { xs: "0.813rem", sm: "0.875rem" },
+                          }}
+                        >
+                          {subcategory.description}
+                        </Typography>
+                      )}
                     </Box>
-
-                    {/* Item Description */}
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
+                    <Divider
                       sx={{
-                        mb: 2,
-                        lineHeight: 1.6,
-                        fontSize: { xs: "0.813rem", sm: "0.875rem" },
-                        display: "-webkit-box",
-                        WebkitLineClamp: 3,
-                        WebkitBoxOrient: "vertical",
-                        overflow: "hidden",
+                        flexGrow: 1,
+                        borderColor: "rgba(140, 58, 43, 0.15)",
+                        borderWidth: 1,
                       }}
-                    >
-                      {item.description}
-                    </Typography>
+                    />
+                  </Box>
 
-                    {/* Price */}
+                  {/* Items Grid for this Subheading */}
+                  <Grid container spacing={{ xs: 1.5, sm: 2, md: 3 }}>
+                    {subcategoryItems.map((item) => (
+                      <Grid item xs={6} sm={4} md={3} key={item.id}>
+                        <Card
+                          sx={{
+                            height: "100%",
+                            display: "flex",
+                            flexDirection: "column",
+                            borderRadius: 2,
+                            boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+                            background: "#FFFFFF",
+                            border: "1px solid rgba(200, 169, 126, 0.08)",
+                            transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                            overflow: "hidden",
+                            "&:hover": {
+                              transform: "translateY(-2px)",
+                              boxShadow: "0 6px 16px rgba(140, 58, 43, 0.1)",
+                              border: "1px solid rgba(200, 169, 126, 0.2)",
+                            },
+                          }}
+                        >
+                          <CardMedia
+                            component="img"
+                            image={item.image}
+                            alt={item.name}
+                            sx={{
+                              objectFit: "cover",
+                              height: { xs: 120, sm: 140 },
+                            }}
+                          />
+                          <CardContent
+                            sx={{ flexGrow: 1, p: { xs: 1.25, sm: 1.5 } }}
+                          >
+                            <Box
+                              sx={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "flex-start",
+                                mb: 1,
+                                gap: 1,
+                              }}
+                            >
+                              <Typography
+                                variant="h6"
+                                sx={{
+                                  fontWeight: 700,
+                                  color: "text.primary",
+                                  fontSize: { xs: "0.875rem", sm: "0.938rem" },
+                                  lineHeight: 1.3,
+                                  mb: 0.5,
+                                }}
+                              >
+                                {item.name}
+                              </Typography>
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  gap: 0.5,
+                                  flexShrink: 0,
+                                }}
+                              >
+                                {item.isVegetarian && (
+                                  <Grass
+                                    sx={{
+                                      fontSize: 14,
+                                      color: "#4CAF50",
+                                    }}
+                                    titleAccess="Vegetarian"
+                                  />
+                                )}
+                                {item.isSpicy && (
+                                  <LocalFireDepartment
+                                    sx={{
+                                      fontSize: 14,
+                                      color: "#FF5722",
+                                    }}
+                                    titleAccess="Spicy"
+                                  />
+                                )}
+                              </Box>
+                            </Box>
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                              sx={{
+                                mb: 1,
+                                lineHeight: 1.4,
+                                fontSize: { xs: "0.688rem", sm: "0.75rem" },
+                                display: "-webkit-box",
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: "vertical",
+                                overflow: "hidden",
+                              }}
+                            >
+                              {item.description}
+                            </Typography>
+                            <Typography
+                              variant="h6"
+                              sx={{
+                                fontWeight: 700,
+                                background:
+                                  "linear-gradient(135deg, #8C3A2B 0%, #C66F53 100%)",
+                                WebkitBackgroundClip: "text",
+                                WebkitTextFillColor: "transparent",
+                                fontSize: { xs: "0.938rem", sm: "1rem" },
+                              }}
+                            >
+                              ${item.price.toFixed(2)}
+                            </Typography>
+                          </CardContent>
+                        </Card>
+                      </Grid>
+                    ))}
+                  </Grid>
+                </Box>
+              );
+            })}
+
+            {/* Render items without subheading (if any) */}
+            {groupedItems["none"] && groupedItems["none"].length > 0 && (
+              <Box sx={{ mb: { xs: 4, sm: 5 } }}>
+                {/* Show "Other Items" header only if there are also subcategories */}
+                {subcategories.length > 0 && (
+                  <Box
+                    sx={{
+                      mb: { xs: 2, sm: 3 },
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 2,
+                    }}
+                  >
                     <Typography
-                      variant="h6"
+                      variant="h5"
                       sx={{
                         fontWeight: 700,
-                        background:
-                          "linear-gradient(135deg, #8C3A2B 0%, #C66F53 100%)",
-                        WebkitBackgroundClip: "text",
-                        WebkitTextFillColor: "transparent",
-                        fontSize: { xs: "1.125rem", sm: "1.25rem" },
+                        fontSize: { xs: "1.25rem", sm: "1.5rem" },
+                        color: "#8C3A2B",
                       }}
                     >
-                      ${item.price.toFixed(2)}
+                      Other Items
                     </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
+                    <Divider
+                      sx={{
+                        flexGrow: 1,
+                        borderColor: "rgba(140, 58, 43, 0.15)",
+                        borderWidth: 1,
+                      }}
+                    />
+                  </Box>
+                )}
+
+                {/* Items Grid for uncategorized items */}
+                <Grid container spacing={{ xs: 1.5, sm: 2, md: 3 }}>
+                  {groupedItems["none"].map((item) => (
+                    <Grid item xs={6} sm={4} md={3} key={item.id}>
+                      <Card
+                        sx={{
+                          height: "100%",
+                          display: "flex",
+                          flexDirection: "column",
+                          borderRadius: 2,
+                          boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+                          background: "#FFFFFF",
+                          border: "1px solid rgba(200, 169, 126, 0.08)",
+                          transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                          overflow: "hidden",
+                          "&:hover": {
+                            transform: "translateY(-2px)",
+                            boxShadow: "0 6px 16px rgba(140, 58, 43, 0.1)",
+                            border: "1px solid rgba(200, 169, 126, 0.2)",
+                          },
+                        }}
+                      >
+                        {/* Item Image */}
+                        <CardMedia
+                          component="img"
+                          image={item.image}
+                          alt={item.name}
+                          sx={{
+                            objectFit: "cover",
+                            height: { xs: 120, sm: 140 },
+                          }}
+                        />
+
+                        <CardContent
+                          sx={{ flexGrow: 1, p: { xs: 1.25, sm: 1.5 } }}
+                        >
+                          {/* Item Name and Badges */}
+                          <Box
+                            sx={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "flex-start",
+                              mb: 1,
+                              gap: 1,
+                            }}
+                          >
+                            <Typography
+                              variant="h6"
+                              sx={{
+                                fontWeight: 700,
+                                color: "text.primary",
+                                fontSize: { xs: "0.875rem", sm: "0.938rem" },
+                                lineHeight: 1.3,
+                                mb: 0.5,
+                              }}
+                            >
+                              {item.name}
+                            </Typography>
+                            <Box
+                              sx={{ display: "flex", gap: 0.5, flexShrink: 0 }}
+                            >
+                              {item.isVegetarian && (
+                                <Grass
+                                  sx={{
+                                    fontSize: 14,
+                                    color: "#4CAF50",
+                                  }}
+                                  titleAccess="Vegetarian"
+                                />
+                              )}
+                              {item.isSpicy && (
+                                <LocalFireDepartment
+                                  sx={{
+                                    fontSize: 14,
+                                    color: "#FF5722",
+                                  }}
+                                  titleAccess="Spicy"
+                                />
+                              )}
+                            </Box>
+                          </Box>
+
+                          {/* Item Description */}
+                          <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            sx={{
+                              mb: 1,
+                              lineHeight: 1.4,
+                              fontSize: { xs: "0.688rem", sm: "0.75rem" },
+                              display: "-webkit-box",
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: "vertical",
+                              overflow: "hidden",
+                            }}
+                          >
+                            {item.description}
+                          </Typography>
+
+                          {/* Price */}
+                          <Typography
+                            variant="h6"
+                            sx={{
+                              fontWeight: 700,
+                              background:
+                                "linear-gradient(135deg, #8C3A2B 0%, #C66F53 100%)",
+                              WebkitBackgroundClip: "text",
+                              WebkitTextFillColor: "transparent",
+                              fontSize: { xs: "0.938rem", sm: "1rem" },
+                            }}
+                          >
+                            ${item.price.toFixed(2)}
+                          </Typography>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  ))}
+                </Grid>
+              </Box>
+            )}
+          </Box>
         )}
       </Container>
     </Box>

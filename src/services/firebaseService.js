@@ -62,7 +62,7 @@ export const clearManagerStoreId = () => {
  * - store123.yourdomain.com → clientId: "store123"
  * - localhost:3000 → clientId: "demo-restaurant" (default)
  */
-const getClientId = () => {
+export const getClientId = () => {
   // 1. If a manager's store ID is set, always use it (for logged-in managers).
   if (managerStoreId) {
     console.log(`🏪 Using manager store ID: ${managerStoreId}`);
@@ -561,6 +561,61 @@ export const deleteMenuItem = async (itemId) => {
     return true;
   } catch (error) {
     console.error("Error deleting menu item:", error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch menu items by subcategory
+ * @param {string} categoryId - Category ID
+ * @param {string} subcategoryId - Subcategory ID (null = no subcategory)
+ * @param {boolean} includeHidden - Whether to include hidden items
+ * @returns {Promise<Array>} Array of menu items
+ */
+export const fetchMenuItemsBySubcategory = async (
+  categoryId,
+  subcategoryId,
+  includeHidden = false
+) => {
+  try {
+    const clientId = getClientId();
+    console.log(
+      `🍽️  Fetching items for subcategory: ${
+        subcategoryId || "none"
+      } in category: ${categoryId}`
+    );
+
+    const itemsRef = collection(db, "clients", clientId, "menuItems");
+    const q = query(itemsRef, where("categoryId", "==", categoryId));
+    const querySnapshot = await getDocs(q);
+
+    let items = querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    // Filter by subcategory
+    if (subcategoryId === null) {
+      // Show items without subcategory
+      items = items.filter((item) => !item.subcategoryId);
+    } else if (subcategoryId) {
+      // Show items with specific subcategory
+      items = items.filter((item) => item.subcategoryId === subcategoryId);
+    }
+    // If subcategoryId is undefined, show all items in category
+
+    // Filter by isActive
+    if (!includeHidden) {
+      items = items.filter((item) => item.isActive !== false);
+    }
+
+    // Sort by order
+    items.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+    console.log(`✅ Found ${items.length} items`);
+    return items;
+  } catch (error) {
+    console.error("❌ Error fetching items by subcategory:", error);
     throw error;
   }
 };

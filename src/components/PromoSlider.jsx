@@ -43,12 +43,11 @@ const PromoSlider = ({ banners }) => {
       sx={{
         position: "relative",
         width: "100%",
-        maxWidth: "1400px",
-        margin: { xs: "0 auto 16px", sm: "0 auto 24px" },
-        mx: { xs: 1.5, sm: 2, md: "auto" },
+        maxWidth: "100%", // Full width
         overflow: "hidden",
-        borderRadius: { xs: 3, sm: 4 },
-        boxShadow: "0 12px 40px rgba(0,0,0,0.12)",
+        borderRadius: 0, // No border radius for flush edge-to-edge look
+        boxShadow: "none", // No shadow for cleaner integration
+        mb: 0, // No margins
       }}
     >
       {/* Slider Container */}
@@ -84,7 +83,7 @@ const PromoSlider = ({ banners }) => {
                 left: 0,
                 right: 0,
                 background:
-                  "linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.75) 100%)",
+                  "linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.65) 100%)", // Softer gradient
                 color: "white",
                 p: { xs: 2, sm: 3, md: 4 },
                 display: "block",
@@ -95,8 +94,9 @@ const PromoSlider = ({ banners }) => {
                 sx={{
                   fontWeight: 700,
                   fontSize: { xs: "1.125rem", sm: "1.5rem", md: "1.75rem" },
-                  textShadow: "0 2px 12px rgba(0,0,0,0.6)",
+                  textShadow: "0 1px 8px rgba(0,0,0,0.4)", // Softer shadow
                   mb: 0.5,
+                  letterSpacing: "-0.02em", // Tighter, more professional
                 }}
               >
                 {banner.title}
@@ -104,9 +104,10 @@ const PromoSlider = ({ banners }) => {
               <Typography
                 variant="body1"
                 sx={{
-                  opacity: 0.95,
+                  opacity: 0.92,
                   fontSize: { xs: "0.813rem", sm: "0.938rem", md: "1rem" },
-                  textShadow: "0 1px 4px rgba(0,0,0,0.4)",
+                  textShadow: "0 1px 3px rgba(0,0,0,0.3)", // Subtle shadow
+                  lineHeight: 1.5,
                 }}
               >
                 {banner.description}
@@ -126,19 +127,24 @@ const PromoSlider = ({ banners }) => {
               left: { xs: 8, sm: 16 },
               top: "50%",
               transform: "translateY(-50%)",
-              backgroundColor: "rgba(255, 255, 255, 0.95)",
-              backdropFilter: "blur(8px)",
-              boxShadow: "0 4px 16px rgba(0,0,0,0.15)",
+              backgroundColor: "rgba(255, 255, 255, 0.92)",
+              backdropFilter: "blur(4px)",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+              borderRadius: "6px", // Matches banner style
+              border: "1px solid rgba(0,0,0,0.05)",
               "&:hover": {
                 backgroundColor: "rgba(255, 255, 255, 1)",
-                transform: "translateY(-50%) scale(1.1)",
+                transform: "translateY(-50%) scale(1.05)",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
               },
-              width: { xs: 36, sm: 44 },
-              height: { xs: 36, sm: 44 },
+              width: { xs: 36, sm: 40 },
+              height: { xs: 36, sm: 40 },
               transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
             }}
           >
-            <ChevronLeft sx={{ fontSize: { xs: 20, sm: 24 } }} />
+            <ChevronLeft
+              sx={{ fontSize: { xs: 20, sm: 24 }, color: "#2C1A12" }}
+            />
           </IconButton>
           <IconButton
             onClick={handleNext}
@@ -147,19 +153,24 @@ const PromoSlider = ({ banners }) => {
               right: { xs: 8, sm: 16 },
               top: "50%",
               transform: "translateY(-50%)",
-              backgroundColor: "rgba(255, 255, 255, 0.95)",
-              backdropFilter: "blur(8px)",
-              boxShadow: "0 4px 16px rgba(0,0,0,0.15)",
+              backgroundColor: "rgba(255, 255, 255, 0.92)",
+              backdropFilter: "blur(4px)",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+              borderRadius: "6px", // Matches banner style
+              border: "1px solid rgba(0,0,0,0.05)",
               "&:hover": {
                 backgroundColor: "rgba(255, 255, 255, 1)",
-                transform: "translateY(-50%) scale(1.1)",
+                transform: "translateY(-50%) scale(1.05)",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
               },
-              width: { xs: 36, sm: 44 },
-              height: { xs: 36, sm: 44 },
+              width: { xs: 36, sm: 40 },
+              height: { xs: 36, sm: 40 },
               transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
             }}
           >
-            <ChevronRight sx={{ fontSize: { xs: 20, sm: 24 } }} />
+            <ChevronRight
+              sx={{ fontSize: { xs: 20, sm: 24 }, color: "#2C1A12" }}
+            />
           </IconButton>
         </>
       )}
@@ -174,11 +185,12 @@ const PromoSlider = ({ banners }) => {
             transform: "translateX(-50%)",
             display: "flex",
             gap: { xs: 0.75, sm: 1 },
-            backgroundColor: "rgba(0,0,0,0.25)",
-            backdropFilter: "blur(8px)",
-            borderRadius: "24px",
+            backgroundColor: "rgba(0,0,0,0.15)", // More subtle background
+            backdropFilter: "blur(4px)",
+            borderRadius: "16px", // Less rounded, more refined
             px: 1.5,
             py: 0.75,
+            border: "1px solid rgba(255,255,255,0.15)",
           }}
         >
           {banners.map((_, index) => (
@@ -186,25 +198,24 @@ const PromoSlider = ({ banners }) => {
               key={index}
               onClick={() => setCurrentIndex(index)}
               sx={{
-                width: { xs: 8, sm: 10 },
-                height: { xs: 8, sm: 10 },
-                borderRadius: "50%",
-                border:
+                width:
                   index === currentIndex
-                    ? "2px solid #F2C14E"
-                    : "2px solid rgba(255,255,255,0.4)",
+                    ? { xs: 24, sm: 28 }
+                    : { xs: 8, sm: 10 }, // Active dot is wider
+                height: { xs: 8, sm: 10 },
+                borderRadius: "8px", // Pill shape instead of circle
+                border: "none",
                 backgroundColor:
                   index === currentIndex
                     ? "#F2C14E"
-                    : "rgba(255, 255, 255, 0.3)",
+                    : "rgba(255, 255, 255, 0.4)",
                 cursor: "pointer",
                 transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                 "&:hover": {
-                  transform: "scale(1.2)",
                   backgroundColor:
                     index === currentIndex
                       ? "#FFD966"
-                      : "rgba(255, 255, 255, 0.5)",
+                      : "rgba(255, 255, 255, 0.6)",
                 },
               }}
             />

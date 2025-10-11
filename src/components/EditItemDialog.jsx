@@ -15,14 +15,26 @@ import {
   Switch,
   Divider,
   Alert,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from "@mui/material";
 import { Close, Visibility, VisibilityOff } from "@mui/icons-material";
+import ImageUploadField from "./ImageUploadField";
 
 /**
  * EditItemDialog Component
  * Allows managers to edit menu item details
  */
-const EditItemDialog = ({ open, onClose, item, onSave }) => {
+const EditItemDialog = ({
+  open,
+  onClose,
+  item,
+  onSave,
+  onUpload,
+  subcategories = [],
+}) => {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -31,6 +43,7 @@ const EditItemDialog = ({ open, onClose, item, onSave }) => {
     isVegetarian: false,
     isSpicy: false,
     isActive: true,
+    subcategoryId: "",
   });
   const [loading, setLoading] = useState(false);
 
@@ -44,6 +57,7 @@ const EditItemDialog = ({ open, onClose, item, onSave }) => {
         isVegetarian: item.isVegetarian || false,
         isSpicy: item.isSpicy || false,
         isActive: item.isActive !== undefined ? item.isActive : true,
+        subcategoryId: item.subcategoryId || "",
       });
     }
   }, [item]);
@@ -137,15 +151,38 @@ const EditItemDialog = ({ open, onClose, item, onSave }) => {
             sx={{ mb: 2 }}
           />
 
-          <TextField
-            fullWidth
-            label="Image URL"
+          {subcategories.length > 0 && (
+            <FormControl fullWidth sx={{ mb: 2 }}>
+              <InputLabel>Subheading (Optional)</InputLabel>
+              <Select
+                value={formData.subcategoryId}
+                onChange={handleChange("subcategoryId")}
+                label="Subheading (Optional)"
+                disabled={loading}
+              >
+                <MenuItem value="">
+                  <em>None</em>
+                </MenuItem>
+                {subcategories.map((sub) => (
+                  <MenuItem key={sub.id} value={sub.id}>
+                    {sub.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
+
+          <ImageUploadField
+            label="Item Image"
             value={formData.image}
-            onChange={handleChange("image")}
-            required
+            onChange={(imageUrl) =>
+              setFormData((prev) => ({ ...prev, image: imageUrl }))
+            }
+            onUpload={onUpload}
+            folder="items"
             disabled={loading}
+            helperText="Upload an image or paste an image URL"
             sx={{ mb: 2 }}
-            helperText="Enter the URL of the item image"
           />
 
           <Box sx={{ display: "flex", gap: 2, mb: 3 }}>

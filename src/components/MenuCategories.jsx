@@ -7,9 +7,7 @@ import {
   CardContent,
   Typography,
   CardActionArea,
-  Chip,
 } from "@mui/material";
-import { ChevronRight } from "@mui/icons-material";
 
 /**
  * MenuCategories Component
@@ -150,37 +148,6 @@ const MenuCategories = ({ categories, onCategoryClick }) => {
                     >
                       {category.description}
                     </Typography>
-
-                    {/* Item Count Badge */}
-                    {category.itemCount && (
-                      <Chip
-                        label={`${category.itemCount} items`}
-                        size="small"
-                        sx={{
-                          background:
-                            "linear-gradient(135deg, #C8A97E 0%, #F2C14E 100%)",
-                          color: "#2C1A12",
-                          fontWeight: 600,
-                          fontSize: { xs: "0.688rem", sm: "0.75rem" },
-                          height: { xs: 22, sm: 24 },
-                          boxShadow: "0 2px 8px rgba(200, 169, 126, 0.3)",
-                        }}
-                      />
-                    )}
-
-                    {/* Arrow Icon */}
-                    <ChevronRight
-                      className="category-arrow"
-                      sx={{
-                        position: "absolute",
-                        right: { xs: 8, sm: 12 },
-                        top: { xs: 8, sm: 12 },
-                        color: "#C8A97E",
-                        fontSize: { xs: "1.25rem", sm: "1.5rem" },
-                        opacity: 0.7,
-                        transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                      }}
-                    />
                   </CardContent>
                 </CardActionArea>
               </Card>
