@@ -35,62 +35,85 @@ const MenuCategories = ({ categories, onCategoryClick }) => {
   return (
     <Box
       sx={{
-        background:
-          "linear-gradient(180deg, #FAF7F2 0%, #FFF 40%, #FAF7F2 100%)",
+        background: "transparent",
         minHeight: "60vh",
-        py: { xs: 4, sm: 6 },
+        py: { xs: 3, sm: 5 },
+        px: { xs: 1.5, sm: 2 },
       }}
     >
       <Container maxWidth="lg">
-        <Box sx={{ textAlign: "center", mb: { xs: 3, sm: 5 } }}>
+        <Box sx={{ textAlign: "center", mb: { xs: 3, sm: 4 } }}>
           <Typography
             variant="h4"
             component="h2"
             sx={{
               fontWeight: 700,
+              fontSize: { xs: "1.75rem", sm: "2.125rem" },
               color: "text.primary",
+              mb: 1,
             }}
           >
             Explore Our Menu
           </Typography>
-          <Typography variant="body1" color="text.secondary">
+          <Typography
+            variant="body1"
+            color="text.secondary"
+            sx={{ fontSize: { xs: "0.875rem", sm: "1rem" } }}
+          >
             Hand-crafted dishes made with seasonal ingredients
           </Typography>
         </Box>
 
-        <Grid container spacing={{ xs: 2, sm: 3 }}>
+        <Grid container spacing={{ xs: 1.5, sm: 2, md: 3 }}>
           {categories.map((category) => (
-            <Grid item xs={12} sm={6} md={4} key={category.id}>
+            <Grid item xs={6} sm={6} md={4} key={category.id}>
               <Card
                 sx={{
                   height: "100%",
-                  transition: "all 0.35s ease",
+                  borderRadius: { xs: 3, sm: 4 },
+                  boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+                  background:
+                    "linear-gradient(135deg, #FFFFFF 0%, #FFFBF7 100%)",
+                  transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                   overflow: "hidden",
+                  border: "1px solid rgba(200, 169, 126, 0.1)",
                   "&:hover": {
-                    transform: "translateY(-6px)",
-                    boxShadow: "0 16px 36px rgba(44,26,18,0.18)",
+                    transform: "translateY(-4px) scale(1.02)",
+                    boxShadow: "0 12px 40px rgba(140, 58, 43, 0.15)",
+                    border: "1px solid rgba(200, 169, 126, 0.3)",
+                  },
+                  "&:active": {
+                    transform: "translateY(-2px) scale(1.01)",
                   },
                 }}
               >
                 <CardActionArea
                   onClick={() => handleCategoryClick(category)}
-                  sx={{ height: "100%" }}
+                  sx={{
+                    height: "100%",
+                    "&:hover .category-arrow": {
+                      transform: "translateX(4px)",
+                    },
+                  }}
                 >
                   <CardContent
                     sx={{
                       display: "flex",
                       flexDirection: "column",
                       alignItems: "center",
-                      gap: 1,
-                      p: { xs: 2.5, sm: 3 },
+                      gap: { xs: 0.75, sm: 1 },
+                      p: { xs: 2, sm: 2.5, md: 3 },
                       position: "relative",
+                      minHeight: { xs: 140, sm: 180 },
                     }}
                   >
                     {/* Category Icon */}
                     <Box
                       sx={{
-                        fontSize: { xs: "3rem", sm: "3.5rem" },
-                        mb: 1.5,
+                        fontSize: { xs: "2.5rem", sm: "3rem", md: "3.5rem" },
+                        mb: { xs: 0.5, sm: 1 },
+                        filter:
+                          "drop-shadow(0 2px 8px rgba(140, 58, 43, 0.15))",
                       }}
                     >
                       {category.icon}
@@ -102,10 +125,12 @@ const MenuCategories = ({ categories, onCategoryClick }) => {
                       component="h3"
                       sx={{
                         fontWeight: 700,
-                        mb: 0.5,
+                        fontSize: { xs: "0.938rem", sm: "1.125rem" },
+                        mb: { xs: 0.25, sm: 0.5 },
                         textAlign: "center",
                         color: "text.primary",
-                        letterSpacing: 0.3,
+                        letterSpacing: 0.2,
+                        lineHeight: 1.3,
                       }}
                     >
                       {category.name}
@@ -115,7 +140,13 @@ const MenuCategories = ({ categories, onCategoryClick }) => {
                     <Typography
                       variant="body2"
                       color="text.secondary"
-                      sx={{ textAlign: "center", mb: 2 }}
+                      sx={{
+                        textAlign: "center",
+                        mb: { xs: 0.75, sm: 1.5 },
+                        fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                        lineHeight: 1.4,
+                        display: { xs: "none", sm: "block" },
+                      }}
                     >
                       {category.description}
                     </Typography>
@@ -126,23 +157,28 @@ const MenuCategories = ({ categories, onCategoryClick }) => {
                         label={`${category.itemCount} items`}
                         size="small"
                         sx={{
-                          bgcolor: "#C8A97E",
+                          background:
+                            "linear-gradient(135deg, #C8A97E 0%, #F2C14E 100%)",
                           color: "#2C1A12",
                           fontWeight: 600,
+                          fontSize: { xs: "0.688rem", sm: "0.75rem" },
+                          height: { xs: 22, sm: 24 },
+                          boxShadow: "0 2px 8px rgba(200, 169, 126, 0.3)",
                         }}
                       />
                     )}
 
                     {/* Arrow Icon */}
                     <ChevronRight
+                      className="category-arrow"
                       sx={{
                         position: "absolute",
-                        right: 14,
-                        top: "50%",
-                        transform: "translateY(-50%)",
+                        right: { xs: 8, sm: 12 },
+                        top: { xs: 8, sm: 12 },
                         color: "#C8A97E",
-                        fontSize: "1.6rem",
-                        opacity: 0.9,
+                        fontSize: { xs: "1.25rem", sm: "1.5rem" },
+                        opacity: 0.7,
+                        transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                       }}
                     />
                   </CardContent>

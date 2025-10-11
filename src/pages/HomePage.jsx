@@ -132,21 +132,31 @@ const HomePage = () => {
               direction={{ xs: "column", sm: "row" }}
               spacing={2}
               justifyContent="center"
+              sx={{ px: { xs: 2, sm: 0 } }}
             >
               <Button
                 variant="contained"
                 size="large"
-                startIcon={<BusinessCenter />}
+                startIcon={
+                  <BusinessCenter
+                    sx={{ fontSize: { xs: "1.25rem", sm: "1.5rem" } }}
+                  />
+                }
                 sx={{
                   bgcolor: "#F2C14E",
                   color: "#2C1A12",
-                  px: 4,
-                  py: 1.5,
-                  fontSize: "1.1rem",
+                  px: { xs: 3, sm: 4 },
+                  py: { xs: 1.25, sm: 1.5 },
+                  fontSize: { xs: "0.95rem", sm: "1.1rem" },
                   fontWeight: 700,
+                  borderRadius: 2,
+                  boxShadow: "0 4px 20px rgba(242, 193, 78, 0.3)",
                   "&:hover": {
                     bgcolor: "#C8A97E",
+                    boxShadow: "0 6px 24px rgba(242, 193, 78, 0.4)",
+                    transform: "translateY(-2px)",
                   },
+                  transition: "all 0.3s ease",
                 }}
                 href="#contact"
               >
@@ -158,14 +168,19 @@ const HomePage = () => {
                 sx={{
                   borderColor: "white",
                   color: "white",
-                  px: 4,
-                  py: 1.5,
-                  fontSize: "1.1rem",
+                  px: { xs: 3, sm: 4 },
+                  py: { xs: 1.25, sm: 1.5 },
+                  fontSize: { xs: "0.95rem", sm: "1.1rem" },
                   fontWeight: 700,
+                  borderRadius: 2,
+                  borderWidth: 2,
                   "&:hover": {
                     borderColor: "#F2C14E",
                     bgcolor: "rgba(242, 193, 78, 0.1)",
+                    borderWidth: 2,
+                    transform: "translateY(-2px)",
                   },
+                  transition: "all 0.3s ease",
                 }}
                 onClick={() => navigate("/login")}
               >
@@ -191,7 +206,7 @@ const HomePage = () => {
         >
           Why MenuScanner?
         </Typography>
-        <Grid container spacing={4}>
+        <Grid container spacing={{ xs: 2, sm: 3, md: 4 }}>
           {features.map((feature, index) => (
             <Grid item xs={12} sm={6} md={4} key={index}>
               <Card
@@ -199,24 +214,43 @@ const HomePage = () => {
                   height: "100%",
                   display: "flex",
                   flexDirection: "column",
-                  transition: "transform 0.3s, box-shadow 0.3s",
+                  borderRadius: { xs: 2, sm: 3 },
+                  boxShadow: "0 4px 16px rgba(44,26,18,0.08)",
+                  transition: "transform 0.3s ease, box-shadow 0.3s ease",
                   "&:hover": {
                     transform: "translateY(-8px)",
                     boxShadow: "0 12px 40px rgba(44,26,18,0.15)",
                   },
                 }}
               >
-                <CardContent sx={{ textAlign: "center", p: 4 }}>
-                  <Box sx={{ color: "primary.main", mb: 2 }}>
+                <CardContent sx={{ textAlign: "center", p: { xs: 3, sm: 4 } }}>
+                  <Box
+                    sx={{
+                      color: "primary.main",
+                      mb: 2,
+                      "& svg": {
+                        fontSize: { xs: "2.5rem", sm: "3rem" },
+                      },
+                    }}
+                  >
                     {feature.icon}
                   </Box>
                   <Typography
                     variant="h6"
-                    sx={{ fontWeight: 700, mb: 1.5, color: "primary.main" }}
+                    sx={{
+                      fontWeight: 700,
+                      mb: 1.5,
+                      color: "primary.main",
+                      fontSize: { xs: "1.1rem", sm: "1.25rem" },
+                    }}
                   >
                     {feature.title}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ fontSize: { xs: "0.875rem", sm: "0.9375rem" } }}
+                  >
                     {feature.description}
                   </Typography>
                 </CardContent>
@@ -242,88 +276,124 @@ const HomePage = () => {
           >
             How It Works
           </Typography>
-          <Grid container spacing={4}>
-            <Grid item xs={12} md={4}>
-              <Box sx={{ textAlign: "center" }}>
+          <Grid container spacing={{ xs: 3, sm: 4 }}>
+            <Grid item xs={12} sm={4}>
+              <Box sx={{ textAlign: "center", px: { xs: 2, sm: 0 } }}>
                 <Box
                   sx={{
-                    width: 80,
-                    height: 80,
+                    width: { xs: 70, sm: 80 },
+                    height: { xs: 70, sm: 80 },
                     borderRadius: "50%",
                     bgcolor: "primary.main",
                     color: "white",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontSize: "2rem",
+                    fontSize: { xs: "1.75rem", sm: "2rem" },
                     fontWeight: 700,
                     mx: "auto",
                     mb: 2,
+                    boxShadow: "0 4px 16px rgba(44,26,18,0.2)",
                   }}
                 >
                   1
                 </Box>
-                <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    fontWeight: 700,
+                    mb: 1,
+                    fontSize: { xs: "1.1rem", sm: "1.25rem" },
+                  }}
+                >
                   Sign Up
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ fontSize: { xs: "0.875rem", sm: "0.9375rem" } }}
+                >
                   Contact us to create your restaurant account and get started
                 </Typography>
               </Box>
             </Grid>
-            <Grid item xs={12} md={4}>
-              <Box sx={{ textAlign: "center" }}>
+            <Grid item xs={12} sm={4}>
+              <Box sx={{ textAlign: "center", px: { xs: 2, sm: 0 } }}>
                 <Box
                   sx={{
-                    width: 80,
-                    height: 80,
+                    width: { xs: 70, sm: 80 },
+                    height: { xs: 70, sm: 80 },
                     borderRadius: "50%",
                     bgcolor: "primary.main",
                     color: "white",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontSize: "2rem",
+                    fontSize: { xs: "1.75rem", sm: "2rem" },
                     fontWeight: 700,
                     mx: "auto",
                     mb: 2,
+                    boxShadow: "0 4px 16px rgba(44,26,18,0.2)",
                   }}
                 >
                   2
                 </Box>
-                <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    fontWeight: 700,
+                    mb: 1,
+                    fontSize: { xs: "1.1rem", sm: "1.25rem" },
+                  }}
+                >
                   Upload Menu
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ fontSize: { xs: "0.875rem", sm: "0.9375rem" } }}
+                >
                   Add your menu items, prices, photos, and customize your
                   branding
                 </Typography>
               </Box>
             </Grid>
-            <Grid item xs={12} md={4}>
-              <Box sx={{ textAlign: "center" }}>
+            <Grid item xs={12} sm={4}>
+              <Box sx={{ textAlign: "center", px: { xs: 2, sm: 0 } }}>
                 <Box
                   sx={{
-                    width: 80,
-                    height: 80,
+                    width: { xs: 70, sm: 80 },
+                    height: { xs: 70, sm: 80 },
                     borderRadius: "50%",
                     bgcolor: "primary.main",
                     color: "white",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontSize: "2rem",
+                    fontSize: { xs: "1.75rem", sm: "2rem" },
                     fontWeight: 700,
                     mx: "auto",
                     mb: 2,
+                    boxShadow: "0 4px 16px rgba(44,26,18,0.2)",
                   }}
                 >
                   3
                 </Box>
-                <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    fontWeight: 700,
+                    mb: 1,
+                    fontSize: { xs: "1.1rem", sm: "1.25rem" },
+                  }}
+                >
                   Share QR Code
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ fontSize: { xs: "0.875rem", sm: "0.9375rem" } }}
+                >
                   Print your QR code on tables and let customers scan to view
                   the menu
                 </Typography>
@@ -334,12 +404,21 @@ const HomePage = () => {
       </Box>
 
       {/* Contact Section */}
-      <Container maxWidth="md" sx={{ py: { xs: 6, md: 10 } }} id="contact">
+      <Container
+        maxWidth="md"
+        sx={{
+          py: { xs: 6, md: 10 },
+          px: { xs: 2, sm: 3 },
+        }}
+        id="contact"
+      >
         <Card
           sx={{
             background: "linear-gradient(135deg, #2C1A12 0%, #3D2817 100%)",
             color: "white",
-            p: { xs: 4, md: 6 },
+            p: { xs: 3, sm: 4, md: 6 },
+            borderRadius: { xs: 2, sm: 3 },
+            boxShadow: "0 8px 32px rgba(44,26,18,0.2)",
           }}
         >
           <Typography
@@ -347,7 +426,7 @@ const HomePage = () => {
             sx={{
               textAlign: "center",
               mb: 3,
-              fontSize: { xs: "1.75rem", md: "2.5rem" },
+              fontSize: { xs: "1.75rem", sm: "2rem", md: "2.5rem" },
               fontWeight: 700,
               fontFamily: "Playfair Display, serif",
             }}
@@ -359,27 +438,48 @@ const HomePage = () => {
             sx={{
               textAlign: "center",
               mb: 4,
-              fontSize: "1.125rem",
+              fontSize: { xs: "0.95rem", sm: "1rem", md: "1.125rem" },
               opacity: 0.9,
+              px: { xs: 1, sm: 2 },
             }}
           >
             Contact us today to set up your restaurant's digital menu
           </Typography>
           <Divider sx={{ bgcolor: "rgba(255,255,255,0.2)", mb: 4 }} />
-          <Stack spacing={3}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-              <Email sx={{ fontSize: 32, color: "#F2C14E" }} />
-              <Box>
-                <Typography variant="subtitle2" sx={{ opacity: 0.7, mb: 0.5 }}>
+          <Stack spacing={{ xs: 2.5, sm: 3 }}>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: { xs: 1.5, sm: 2 },
+              }}
+            >
+              <Email
+                sx={{
+                  fontSize: { xs: 28, sm: 32 },
+                  color: "#F2C14E",
+                  flexShrink: 0,
+                }}
+              />
+              <Box sx={{ minWidth: 0 }}>
+                <Typography
+                  variant="subtitle2"
+                  sx={{
+                    opacity: 0.7,
+                    mb: 0.5,
+                    fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                  }}
+                >
                   Email
                 </Typography>
                 <MuiLink
                   href="mailto:contact@menuscanner.com"
                   sx={{
                     color: "#F2C14E",
-                    fontSize: "1.125rem",
+                    fontSize: { xs: "0.95rem", sm: "1rem", md: "1.125rem" },
                     fontWeight: 600,
                     textDecoration: "none",
+                    wordBreak: "break-word",
                     "&:hover": { textDecoration: "underline" },
                   }}
                 >
@@ -387,17 +487,36 @@ const HomePage = () => {
                 </MuiLink>
               </Box>
             </Box>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-              <Phone sx={{ fontSize: 32, color: "#F2C14E" }} />
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: { xs: 1.5, sm: 2 },
+              }}
+            >
+              <Phone
+                sx={{
+                  fontSize: { xs: 28, sm: 32 },
+                  color: "#F2C14E",
+                  flexShrink: 0,
+                }}
+              />
               <Box>
-                <Typography variant="subtitle2" sx={{ opacity: 0.7, mb: 0.5 }}>
+                <Typography
+                  variant="subtitle2"
+                  sx={{
+                    opacity: 0.7,
+                    mb: 0.5,
+                    fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                  }}
+                >
                   Phone
                 </Typography>
                 <MuiLink
                   href="tel:+1234567890"
                   sx={{
                     color: "#F2C14E",
-                    fontSize: "1.125rem",
+                    fontSize: { xs: "0.95rem", sm: "1rem", md: "1.125rem" },
                     fontWeight: 600,
                     textDecoration: "none",
                     "&:hover": { textDecoration: "underline" },
@@ -407,13 +526,37 @@ const HomePage = () => {
                 </MuiLink>
               </Box>
             </Box>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-              <BusinessCenter sx={{ fontSize: 32, color: "#F2C14E" }} />
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: { xs: 1.5, sm: 2 },
+              }}
+            >
+              <BusinessCenter
+                sx={{
+                  fontSize: { xs: 28, sm: 32 },
+                  color: "#F2C14E",
+                  flexShrink: 0,
+                }}
+              />
               <Box>
-                <Typography variant="subtitle2" sx={{ opacity: 0.7, mb: 0.5 }}>
+                <Typography
+                  variant="subtitle2"
+                  sx={{
+                    opacity: 0.7,
+                    mb: 0.5,
+                    fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                  }}
+                >
                   Business Hours
                 </Typography>
-                <Typography sx={{ fontSize: "1.125rem", fontWeight: 600 }}>
+                <Typography
+                  sx={{
+                    fontSize: { xs: "0.95rem", sm: "1rem", md: "1.125rem" },
+                    fontWeight: 600,
+                  }}
+                >
                   Monday - Friday: 9:00 AM - 6:00 PM
                 </Typography>
               </Box>

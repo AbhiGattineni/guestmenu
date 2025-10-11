@@ -111,7 +111,7 @@ const AnalyticsTab = () => {
   }
 
   return (
-    <Box>
+    <Box sx={{ width: "100%", maxWidth: "100%", overflowX: "hidden" }}>
       {/* Welcome Header */}
       <Box sx={{ mb: 4 }}>
         <Typography
@@ -121,6 +121,7 @@ const AnalyticsTab = () => {
             color: "#0f172a",
             mb: 1,
             letterSpacing: "-0.02em",
+            fontSize: { xs: "1.5rem", sm: "2rem", md: "2.125rem" },
           }}
         >
           Analytics Dashboard
@@ -128,14 +129,14 @@ const AnalyticsTab = () => {
         <Typography
           variant="body1"
           color="text.secondary"
-          sx={{ fontWeight: 400 }}
+          sx={{ fontWeight: 400, fontSize: { xs: "0.875rem", sm: "1rem" } }}
         >
           Monitor your platform's performance and growth metrics
         </Typography>
       </Box>
 
       {/* Stats Cards */}
-      <Grid container spacing={3} sx={{ mb: 5 }}>
+      <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mb: 5, width: "100%" }}>
         {statsCards.map((stat, index) => (
           <Grid item xs={12} sm={6} lg={4} key={index}>
             <Card
@@ -226,31 +227,39 @@ const AnalyticsTab = () => {
           overflow: "hidden",
           border: "1px solid",
           borderColor: "#e2e8f0",
+          width: "100%",
         }}
       >
         <Box
           sx={{
             background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
-            p: 3,
+            p: { xs: 2, sm: 3 },
             color: "white",
           }}
         >
           <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 1 }}>
-            <Store sx={{ fontSize: 28 }} />
+            <Store sx={{ fontSize: { xs: 24, sm: 28 } }} />
             <Typography
               variant="h5"
-              sx={{ fontWeight: 700, letterSpacing: "-0.01em" }}
+              sx={{
+                fontWeight: 700,
+                letterSpacing: "-0.01em",
+                fontSize: { xs: "1.25rem", sm: "1.5rem" },
+              }}
             >
               Stores Overview
             </Typography>
           </Box>
-          <Typography variant="body2" sx={{ opacity: 0.85 }}>
+          <Typography
+            variant="body2"
+            sx={{ opacity: 0.85, fontSize: { xs: "0.813rem", sm: "0.875rem" } }}
+          >
             Comprehensive breakdown of all stores in your platform
           </Typography>
         </Box>
 
-        <Box sx={{ p: 3 }}>
-          <Grid container spacing={3}>
+        <Box sx={{ p: { xs: 2, sm: 3 } }}>
+          <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ width: "100%" }}>
             {analytics?.storesList.map((store, index) => (
               <Grid item xs={12} md={6} lg={4} key={store.id}>
                 <Card

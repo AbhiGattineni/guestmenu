@@ -354,7 +354,7 @@ const MenuTab = () => {
   }
 
   return (
-    <Box>
+    <Box sx={{ width: "100%", maxWidth: "100%", overflowX: "hidden" }}>
       {/* Header */}
       <Box
         sx={{
@@ -419,8 +419,12 @@ const MenuTab = () => {
           >
             Add Category
           </Button>
-          <TableContainer component={Paper} elevation={2}>
-            <Table>
+          <TableContainer
+            component={Paper}
+            elevation={2}
+            sx={{ width: "100%", overflowX: "auto" }}
+          >
+            <Table sx={{ minWidth: { xs: 300, sm: 650 } }}>
               <TableHead>
                 <TableRow sx={{ bgcolor: "primary.main" }}>
                   <TableCell sx={{ color: "white", fontWeight: 700 }}>
@@ -505,8 +509,12 @@ const MenuTab = () => {
           >
             Add Menu Item
           </Button>
-          <TableContainer component={Paper} elevation={2}>
-            <Table>
+          <TableContainer
+            component={Paper}
+            elevation={2}
+            sx={{ width: "100%", overflowX: "auto" }}
+          >
+            <Table sx={{ minWidth: { xs: 300, sm: 650 } }}>
               <TableHead>
                 <TableRow sx={{ bgcolor: "primary.main" }}>
                   <TableCell sx={{ color: "white", fontWeight: 700 }}>

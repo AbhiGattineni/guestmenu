@@ -41,7 +41,9 @@ function TabPanel({ children, value, index }) {
       id={`tabpanel-${index}`}
       aria-labelledby={`tab-${index}`}
     >
-      {value === index && <Box sx={{ py: 3 }}>{children}</Box>}
+      {value === index && (
+        <Box sx={{ py: { xs: 2, sm: 2.5, md: 3 } }}>{children}</Box>
+      )}
     </div>
   );
 }
@@ -79,17 +81,33 @@ const SuperAdminDashboard = () => {
   ];
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
+    <Box
+      sx={{
+        minHeight: "100vh",
+        bgcolor: "background.default",
+        overflowX: "hidden",
+        width: "100%",
+      }}
+    >
       {/* App Bar */}
       <AppBar
         position="sticky"
-        elevation={0}
+        elevation={2}
         sx={{
           background: "linear-gradient(135deg, #2C1A12 0%, #3D2817 100%)",
           borderBottom: "1px solid rgba(242, 193, 78, 0.1)",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+          width: "100%",
+          maxWidth: "100vw",
         }}
       >
-        <Toolbar sx={{ py: { xs: 1, sm: 1.5 }, px: { xs: 1, sm: 2 } }}>
+        <Toolbar
+          sx={{
+            py: { xs: 1, sm: 1.5 },
+            px: { xs: 1, sm: 2, md: 3 },
+            minHeight: { xs: 56, sm: 64 },
+          }}
+        >
           {/* Left side - Title */}
           <Box
             sx={{
@@ -145,23 +163,43 @@ const SuperAdminDashboard = () => {
           </Box>
 
           {/* Right side - Buttons */}
-          <Box sx={{ display: "flex", gap: { xs: 0.5, sm: 1.5 } }}>
+          <Box
+            sx={{
+              display: "flex",
+              gap: { xs: 0.5, sm: 1, md: 1.5 },
+              alignItems: "center",
+            }}
+          >
             <Button
-              startIcon={<Home sx={{ display: { xs: "none", sm: "block" } }} />}
+              startIcon={
+                <Home
+                  sx={{
+                    display: { xs: "none", sm: "block" },
+                    fontSize: { xs: 18, sm: 20 },
+                  }}
+                />
+              }
               onClick={() => navigate("/")}
               variant="outlined"
+              size="small"
               sx={{
                 color: "white",
                 borderColor: "rgba(242, 193, 78, 0.3)",
-                px: { xs: 1, sm: 2.5 },
-                minWidth: { xs: "auto", sm: "auto" },
+                px: { xs: 0, sm: 1.5, md: 2.5 },
+                minWidth: { xs: 32, sm: "auto" },
+                width: { xs: 32, sm: "auto" },
+                height: { xs: 32, sm: 36, md: 40 },
+                borderRadius: { xs: 1.5, sm: 2 },
+                fontSize: { xs: "0.75rem", sm: "0.875rem" },
                 "&:hover": {
                   borderColor: "#F2C14E",
                   bgcolor: "rgba(242, 193, 78, 0.08)",
                 },
               }}
             >
-              <Home sx={{ display: { xs: "block", sm: "none" } }} />
+              <Home
+                sx={{ display: { xs: "block", sm: "none" }, fontSize: 18 }}
+              />
               <Box
                 component="span"
                 sx={{ display: { xs: "none", sm: "inline" } }}
@@ -171,22 +209,36 @@ const SuperAdminDashboard = () => {
             </Button>
             <Button
               startIcon={
-                <Logout sx={{ display: { xs: "none", sm: "block" } }} />
+                <Logout
+                  sx={{
+                    display: { xs: "none", sm: "block" },
+                    fontSize: { xs: 18, sm: 20 },
+                  }}
+                />
               }
               onClick={handleLogout}
               variant="contained"
+              size="small"
               sx={{
                 background: "linear-gradient(135deg, #8C3A2B 0%, #6B2C20 100%)",
                 color: "white",
-                px: { xs: 1, sm: 2.5 },
-                minWidth: { xs: "auto", sm: "auto" },
+                px: { xs: 0, sm: 1.5, md: 2.5 },
+                minWidth: { xs: 32, sm: "auto" },
+                width: { xs: 32, sm: "auto" },
+                height: { xs: 32, sm: 36, md: 40 },
+                borderRadius: { xs: 1.5, sm: 2 },
+                fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                boxShadow: "0 2px 8px rgba(140, 58, 43, 0.3)",
                 "&:hover": {
                   background:
                     "linear-gradient(135deg, #6B2C20 0%, #8C3A2B 100%)",
+                  boxShadow: "0 3px 12px rgba(140, 58, 43, 0.4)",
                 },
               }}
             >
-              <Logout sx={{ display: { xs: "block", sm: "none" } }} />
+              <Logout
+                sx={{ display: { xs: "block", sm: "none" }, fontSize: 18 }}
+              />
               <Box
                 component="span"
                 sx={{ display: { xs: "none", sm: "inline" } }}
@@ -198,27 +250,52 @@ const SuperAdminDashboard = () => {
         </Toolbar>
 
         {/* Tabs */}
-        <Box sx={{ borderBottom: 1, borderColor: "rgba(255,255,255,0.1)" }}>
-          <Container maxWidth="xl">
+        <Box
+          sx={{
+            borderBottom: 1,
+            borderColor: "rgba(255,255,255,0.1)",
+            width: "100%",
+            overflowX: "hidden",
+          }}
+        >
+          <Container
+            maxWidth="xl"
+            sx={{
+              px: { xs: 1, sm: 2, md: 3 },
+              maxWidth: "100%",
+              overflowX: "hidden",
+            }}
+          >
             <Tabs
               value={currentTab}
               onChange={handleTabChange}
               textColor="inherit"
               indicatorColor="secondary"
-              variant={isMobile ? "scrollable" : "standard"}
+              variant="scrollable"
               scrollButtons="auto"
               sx={{
+                width: "100%",
                 "& .MuiTab-root": {
                   color: "rgba(255,255,255,0.7)",
                   fontWeight: 600,
-                  minHeight: { xs: 56, sm: 64 },
+                  minHeight: { xs: 48, sm: 56, md: 64 },
+                  fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                  px: { xs: 1, sm: 2 },
+                  minWidth: { xs: 48, sm: 120 },
                   "&.Mui-selected": {
                     color: "#F2C14E",
+                  },
+                  "& svg": {
+                    fontSize: { xs: 18, sm: 20, md: 24 },
                   },
                 },
                 "& .MuiTabs-indicator": {
                   backgroundColor: "#F2C14E",
                   height: 3,
+                  borderRadius: "2px 2px 0 0",
+                },
+                "& .MuiTabs-scroller": {
+                  overflowX: "auto !important",
                 },
               }}
             >
@@ -228,7 +305,6 @@ const SuperAdminDashboard = () => {
                   icon={tab.icon}
                   label={isMobile ? null : tab.label}
                   iconPosition="start"
-                  sx={{ minWidth: isMobile ? "auto" : 120 }}
                 />
               ))}
             </Tabs>
@@ -237,7 +313,16 @@ const SuperAdminDashboard = () => {
       </AppBar>
 
       {/* Tab Content */}
-      <Container maxWidth="xl">
+      <Container
+        maxWidth="xl"
+        disableGutters
+        sx={{
+          px: { xs: 1.5, sm: 2, md: 3 },
+          width: "100%",
+          maxWidth: "100vw",
+          overflowX: "hidden",
+        }}
+      >
         {tabs.map((tab, index) => (
           <TabPanel key={index} value={currentTab} index={index}>
             {tab.component}

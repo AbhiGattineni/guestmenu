@@ -85,10 +85,18 @@ const CustomerMenu = () => {
           justifyContent: "center",
           alignItems: "center",
           minHeight: "100vh",
-          backgroundColor: "#f5f5f5",
+          background: "linear-gradient(135deg, #FFF8F0 0%, #F7F1EA 100%)",
         }}
       >
-        <CircularProgress size={60} />
+        <Box sx={{ textAlign: "center" }}>
+          <CircularProgress size={60} thickness={4} sx={{ color: "#8C3A2B" }} />
+          <Typography
+            variant="body2"
+            sx={{ mt: 2, color: "#757575", fontWeight: 500 }}
+          >
+            Loading menu...
+          </Typography>
+        </Box>
       </Box>
     );
   }
@@ -97,19 +105,40 @@ const CustomerMenu = () => {
   if (error) {
     return (
       <Container
+        maxWidth="sm"
         sx={{
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
           minHeight: "100vh",
           textAlign: "center",
+          px: { xs: 2, sm: 3 },
         }}
       >
-        <Box>
-          <Typography variant="h5" color="error" gutterBottom>
+        <Box
+          sx={{
+            backgroundColor: "#fff",
+            borderRadius: 4,
+            p: { xs: 3, sm: 4 },
+            boxShadow: "0 8px 32px rgba(0,0,0,0.08)",
+          }}
+        >
+          <Typography
+            variant="h5"
+            color="error"
+            gutterBottom
+            sx={{
+              fontSize: { xs: "1.25rem", sm: "1.5rem" },
+              fontWeight: 700,
+            }}
+          >
             Oops! Something went wrong
           </Typography>
-          <Typography variant="body1" color="text.secondary">
+          <Typography
+            variant="body1"
+            color="text.secondary"
+            sx={{ fontSize: { xs: "0.875rem", sm: "1rem" } }}
+          >
             {error}
           </Typography>
         </Box>
@@ -121,7 +150,8 @@ const CustomerMenu = () => {
     <Box
       sx={{
         minHeight: "100vh",
-        backgroundColor: "background.default",
+        background: "linear-gradient(180deg, #FFF8F0 0%, #F7F1EA 100%)",
+        pb: { xs: 8, sm: 10 },
       }}
     >
       {/* Restaurant Logo Section */}
@@ -153,8 +183,8 @@ const CustomerMenu = () => {
       <Box
         sx={{
           position: "fixed",
-          bottom: 24,
-          right: 24,
+          bottom: { xs: 16, sm: 24 },
+          right: { xs: 16, sm: 24 },
           display: "flex",
           flexDirection: "column",
           gap: 2,
@@ -164,9 +194,17 @@ const CustomerMenu = () => {
         {isAuthenticated ? (
           <Fab
             color="primary"
+            size="medium"
             onClick={() => navigate("/admin")}
             sx={{
               background: "linear-gradient(135deg, #8C3A2B 0%, #C66F53 100%)",
+              boxShadow: "0 8px 24px rgba(140, 58, 43, 0.3)",
+              "&:hover": {
+                background: "linear-gradient(135deg, #A0442F 0%, #D87F5D 100%)",
+                boxShadow: "0 12px 32px rgba(140, 58, 43, 0.4)",
+                transform: "scale(1.05)",
+              },
+              transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
             }}
             title="Go to Admin Panel"
           >
@@ -175,9 +213,17 @@ const CustomerMenu = () => {
         ) : (
           <Fab
             color="primary"
+            size="medium"
             onClick={() => navigate("/login")}
             sx={{
               background: "linear-gradient(135deg, #8C3A2B 0%, #C66F53 100%)",
+              boxShadow: "0 8px 24px rgba(140, 58, 43, 0.3)",
+              "&:hover": {
+                background: "linear-gradient(135deg, #A0442F 0%, #D87F5D 100%)",
+                boxShadow: "0 12px 32px rgba(140, 58, 43, 0.4)",
+                transform: "scale(1.05)",
+              },
+              transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
             }}
             title="Manager Login"
           >
@@ -191,17 +237,30 @@ const CustomerMenu = () => {
         sx={{
           bgcolor: "#2C1A12",
           color: "#F7F1EA",
-          py: 4,
+          py: { xs: 3, sm: 4 },
+          px: { xs: 2, sm: 3 },
           textAlign: "center",
-          mt: 6,
+          mt: { xs: 4, sm: 6 },
+          borderRadius: { xs: 0, sm: "24px 24px 0 0" },
         }}
       >
-        <Typography variant="body2" sx={{ letterSpacing: 0.3 }}>
+        <Typography
+          variant="body2"
+          sx={{
+            letterSpacing: 0.3,
+            fontSize: { xs: "0.75rem", sm: "0.875rem" },
+          }}
+        >
           © 2025 {restaurantInfo?.name || "Restaurant"}. All rights reserved.
         </Typography>
         <Typography
           variant="caption"
-          sx={{ display: "block", mt: 1, opacity: 0.9 }}
+          sx={{
+            display: "block",
+            mt: 1,
+            opacity: 0.9,
+            fontSize: { xs: "0.625rem", sm: "0.75rem" },
+          }}
         >
           Powered by MenuScanner
         </Typography>

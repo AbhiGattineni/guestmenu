@@ -186,7 +186,7 @@ const BannersTab = () => {
   }
 
   return (
-    <Box>
+    <Box sx={{ width: "100%", maxWidth: "100%", overflowX: "hidden" }}>
       {/* Header */}
       <Box
         sx={{
@@ -258,7 +258,7 @@ const BannersTab = () => {
           </Typography>
         </Box>
       ) : (
-        <Grid container spacing={3}>
+        <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ width: "100%" }}>
           {banners.map((banner) => (
             <Grid item xs={12} md={6} lg={4} key={banner.id}>
               <Card

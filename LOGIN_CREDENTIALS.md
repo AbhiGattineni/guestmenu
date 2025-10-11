@@ -1,122 +1,241 @@
-# 🔐 Manager Login Credentials
+# 🔐 Login Credentials
 
 ## Quick Reference
 
-### Demo Mode: ANY credentials work!
+### Super Admin
 
-You can use **any email and password combination** to login. The system accepts all credentials in demo mode.
+```
+Email:    abhishekgattineni@gmail.com
+Password: admin@123
+Access:   All stores, full platform control
+URL:      http://localhost:3000/superadmin-dashboard
+```
+
+**Capabilities:**
+- ✅ Manage all stores
+- ✅ Create/edit/delete users
+- ✅ Assign managers to stores
+- ✅ Edit menus across all stores
+- ✅ Manage banners for all stores
+- ✅ View analytics dashboard
 
 ---
 
-## Recommended Test Credentials
+### Manager (Store 1)
 
-### Option 1 (Recommended)
 ```
 Email:    manager@restaurant.com
 Password: admin123
+Store:    1
+Access:   Store 1 only
+URL:      http://1.localhost:3000/manager-dashboard
 ```
 
-### Option 2
+**Capabilities:**
+- ✅ Manage own store's menu
+- ✅ Add/edit/delete categories
+- ✅ Add/edit/delete menu items
+- ✅ Manage banners
+- ✅ Upload images
+- ❌ Cannot access other stores
+- ❌ Cannot manage users
+
+---
+
+## Customer Access (No Login Required)
+
+**Homepage:**
 ```
-Email:    admin@gourmet.com
-Password: password
+URL: http://localhost:3000/
+Shows: About MenuScanner app and contact info
 ```
 
-### Option 3
+**Store Menus:**
 ```
-Email:    test@test.com
-Password: test
-```
-
-### Option 4 (Or literally anything!)
-```
-Email:    hello@world.com
-Password: 12345
+Store 1: http://1.localhost:3000/
+Store 2: http://2.localhost:3000/
+Shows: Customer-facing menu with banners, categories, items
 ```
 
 ---
 
-## 🎯 Quick Login Test
+## Creating New Users
 
-### Method 1: Via Customer Page
-1. **Start the app**: `npm start`
-2. **Open**: `http://localhost:3000/`
-3. **Click** the floating Login button (bottom right corner)
-4. **You're redirected to**: `/login`
-5. **Enter**:
+### Via Super Admin Dashboard
+
+1. Login as Super Admin
+2. Go to **Users** tab
+3. Click **Add User**
+4. Fill in:
+   - Name
+   - Email
+   - Password
+   - Role (superadmin/manager)
+   - Store ID (if manager)
+5. Click **Create**
+
+### Via Firebase Console
+
+#### Step 1: Create Authentication User
+
+1. Go to [Firebase Console](https://console.firebase.google.com/)
+2. Select project: **menuscanner-6f332**
+3. Click **Authentication** → **Users**
+4. Click **Add user**
+5. Enter email and password
+6. **Copy the User UID** (you'll need this)
+
+#### Step 2: Add Role to Firestore
+
+1. Go to **Firestore Database**
+2. Navigate to collection: `users`
+3. Click **Add document**
+4. Document ID: `[paste the User UID from step 1]`
+5. Add fields:
+
+**For Super Admin:**
+```
+name: "Full Name"
+email: "email@example.com"
+role: "superadmin"
+createdAt: [current timestamp]
+```
+
+**For Manager:**
+```
+name: "Manager Name"
+email: "manager@example.com"
+role: "manager"
+storeId: "1"  (or any store ID)
+createdAt: [current timestamp]
+```
+
+6. Click **Save**
+
+---
+
+## Testing Login
+
+### Quick Test (30 seconds)
+
+1. **Start the app:**
+   ```bash
+   npm start
+   ```
+
+2. **Test Super Admin:**
+   - Open: `http://localhost:3000/login`
+   - Email: `abhishekgattineni@gmail.com`
+   - Password: `admin@123`
+   - Should redirect to: `/superadmin-dashboard`
+
+3. **Test Manager:**
+   - Logout first
    - Email: `manager@restaurant.com`
    - Password: `admin123`
-6. **Click** "Login to Admin Panel"
-7. **Success!** Redirected to `/admin`
+   - Should redirect to: `/manager-dashboard`
 
-### Method 2: Direct Login URL
-1. **Open directly**: `http://localhost:3000/login`
-2. **Enter credentials** and login
-3. **Redirected to**: `/admin`
+4. **Test Customer Menu:**
+   - Open: `http://1.localhost:3000/`
+   - Should show menu (no login required)
 
 ---
 
-## ✅ Verify Changes Reflect on UI
+## Troubleshooting Login Issues
 
-### Quick Test (30 seconds):
+### Issue: Redirected to Unauthorized Page
 
-1. **Login** with any credentials above
-2. **Click** Admin Panel button
-3. **Find** any item (e.g., "Bruschetta" in Appetizers)
-4. **Click** Edit button
-5. **Change** the price from `8.99` to `15.99`
-6. **Click** Save Changes
-7. **Close** Admin Panel (X button)
-8. **Navigate** to Appetizers category on main menu
-9. **✅ See** the price is now `$15.99`!
+**Solutions:**
 
-**Result**: Changes are LIVE and visible to customers immediately! 🎉
+1. **Check Firestore role document:**
+   - Go to Firebase Console → Firestore
+   - Collection: `users`
+   - Document ID: `[your User UID]`
+   - Verify `role` field exists and is set correctly
+
+2. **Check User UID matches:**
+   - Authentication UID must match Firestore document ID
+
+3. **Check storeId for managers:**
+   - Managers must have `storeId` field
+   - storeId must match an existing store in `clients` collection
+
+### Issue: Cannot Login / Invalid Credentials
+
+**Solutions:**
+
+1. **Check Firebase Authentication:**
+   - Go to Firebase Console → Authentication → Users
+   - Verify user exists with correct email
+
+2. **Reset password:**
+   - Delete user in Authentication
+   - Create new user with correct password
+
+3. **Check browser console:**
+   - Look for specific error messages
+   - Common: "auth/user-not-found", "auth/wrong-password"
+
+### Issue: Login Loop / Keeps Redirecting
+
+**Solutions:**
+
+1. **Clear browser cache:**
+   - Press `Ctrl + Shift + Delete`
+   - Clear cached images and files
+
+2. **Use incognito mode:**
+   - Test in incognito to rule out cache issues
+
+3. **Check console logs:**
+   - Look for "Auth Check" logs
+   - Verify `currentUser` and `userRole` are both present
 
 ---
 
-## 📋 What You Can Edit
+## Security Notes
 
-- ✏️ Item Name
-- ✏️ Description
-- ✏️ Price
-- ✏️ Image URL
-- ✏️ Vegetarian flag
-- ✏️ Spicy flag
+### Password Requirements
 
-All changes are **immediately reflected** on the customer-facing menu!
+- Minimum 6 characters (Firebase requirement)
+- Recommended: Use strong passwords in production
+- Change default passwords immediately
 
----
+### Role Hierarchy
 
-## ⚠️ Important Notes
-
-### Session Persistence
-- ✅ Changes persist during current browser session
-- ✅ Changes visible immediately to customers
-- ❌ Page refresh resets data (no real database connected)
-
-### Real Database Integration
-To make changes permanent:
-1. Connect to a backend API
-2. Replace mock functions in `src/services/mockApi.js`
-3. Add real database storage
-
----
-
-## 🚀 Try It Now!
-
-```bash
-# 1. Start the app
-npm start
-
-# 2. Open browser to http://localhost:3000
-
-# 3. Login with:
-manager@restaurant.com / admin123
-
-# 4. Edit any menu item
-
-# 5. View changes on customer page!
+```
+Super Admin → Full access to everything
+    ↓
+Manager → Limited to assigned store(s)
+    ↓
+Customer → Read-only, no authentication required
 ```
 
-**Enjoy managing your menu!** 🍽️
+### Best Practices
 
+✅ **DO:**
+- Change default passwords
+- Use strong passwords (12+ characters)
+- Regularly audit user access
+- Remove inactive users
+- Enable 2FA for super admins (via Firebase)
+
+❌ **DON'T:**
+- Share super admin credentials
+- Use same password for multiple accounts
+- Leave default credentials in production
+- Give manager role to untrusted users
+
+---
+
+## Additional Resources
+
+For more detailed information:
+
+- **Complete Setup Guide:** See [DOCUMENTATION.md](DOCUMENTATION.md)
+- **Firebase Authentication:** [Firebase Auth Docs](https://firebase.google.com/docs/auth)
+- **Troubleshooting:** See [DOCUMENTATION.md - Troubleshooting](DOCUMENTATION.md#troubleshooting)
+
+---
+
+**Last Updated:** October 11, 2025

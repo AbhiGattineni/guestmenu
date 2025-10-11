@@ -13,10 +13,11 @@ const RestaurantLogo = ({ logo, name, description }) => {
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        gap: 2,
+        gap: { xs: 1.5, sm: 2 },
         py: { xs: 2.5, sm: 3 },
+        px: { xs: 2, sm: 3 },
         background: "linear-gradient(180deg, #FFFFFF 0%, #FFF9F1 100%)",
-        borderBottom: "1px solid rgba(44,26,18,0.06)",
+        boxShadow: "0 2px 12px rgba(0,0,0,0.04)",
       }}
     >
       <Box
@@ -42,13 +43,14 @@ const RestaurantLogo = ({ logo, name, description }) => {
         {logo && (
           <Box
             sx={{
-              width: { xs: 56, sm: 64 },
-              height: { xs: 56, sm: 64 },
+              width: { xs: 52, sm: 64 },
+              height: { xs: 52, sm: 64 },
               borderRadius: "50%",
               overflow: "hidden",
-              boxShadow: "0 4px 12px rgba(44,26,18,0.15)",
-              border: "2px solid #C8A97E",
+              boxShadow: "0 6px 20px rgba(140, 58, 43, 0.2)",
+              border: "3px solid #fff",
               flexShrink: 0,
+              background: "#fff",
             }}
           >
             <img
@@ -62,11 +64,11 @@ const RestaurantLogo = ({ logo, name, description }) => {
         {!logo && (
           <Box
             sx={{
-              width: { xs: 56, sm: 64 },
-              height: { xs: 56, sm: 64 },
+              width: { xs: 52, sm: 64 },
+              height: { xs: 52, sm: 64 },
               borderRadius: "50%",
-              boxShadow: "0 4px 12px rgba(44,26,18,0.15)",
-              border: "2px solid #C8A97E",
+              boxShadow: "0 6px 20px rgba(140, 58, 43, 0.2)",
+              border: "3px solid #fff",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -92,9 +94,10 @@ const RestaurantLogo = ({ logo, name, description }) => {
           component="h1"
           sx={{
             color: "primary.main",
-            fontSize: { xs: "1.5rem", sm: "1.875rem" },
+            fontSize: { xs: "1.375rem", sm: "1.875rem", md: "2.125rem" },
             fontWeight: 700,
             lineHeight: 1.2,
+            textShadow: "0 2px 4px rgba(0,0,0,0.05)",
           }}
         >
           {name}
@@ -109,7 +112,9 @@ const RestaurantLogo = ({ logo, name, description }) => {
             color: "text.secondary",
             textAlign: "center",
             maxWidth: 720,
-            px: 2,
+            px: { xs: 1, sm: 2 },
+            fontSize: { xs: "0.875rem", sm: "1rem" },
+            lineHeight: 1.6,
             zIndex: 1,
           }}
         >
@@ -124,9 +129,15 @@ const RestaurantLogo = ({ logo, name, description }) => {
         label="Scan • Order • Enjoy"
         sx={{
           fontWeight: 600,
-          backgroundColor: "#C8A97E",
+          fontSize: { xs: "0.75rem", sm: "0.813rem" },
+          height: { xs: 28, sm: 32 },
+          background: "linear-gradient(135deg, #C8A97E 0%, #F2C14E 100%)",
           color: "#2C1A12",
           zIndex: 1,
+          boxShadow: "0 4px 12px rgba(200, 169, 126, 0.3)",
+          "& .MuiChip-label": {
+            px: { xs: 2, sm: 2.5 },
+          },
         }}
       />
     </Box>

@@ -147,7 +147,7 @@ const UsersTab = () => {
   }
 
   return (
-    <Box>
+    <Box sx={{ width: "100%", maxWidth: "100%", overflowX: "hidden" }}>
       {/* Header */}
       <Box sx={{ display: "flex", justifyContent: "space-between", mb: 3 }}>
         <Typography variant="h5" sx={{ fontWeight: 700 }}>
@@ -184,8 +184,12 @@ const UsersTab = () => {
       )}
 
       {/* Users Table */}
-      <TableContainer component={Paper} elevation={2}>
-        <Table>
+      <TableContainer
+        component={Paper}
+        elevation={2}
+        sx={{ width: "100%", overflowX: "auto" }}
+      >
+        <Table sx={{ minWidth: { xs: 300, sm: 650 } }}>
           <TableHead>
             <TableRow sx={{ bgcolor: "primary.main" }}>
               <TableCell sx={{ color: "white", fontWeight: 700 }}>

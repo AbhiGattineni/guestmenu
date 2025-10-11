@@ -61,6 +61,8 @@ import {
 import EditItemDialog from "../components/EditItemDialog";
 import AddCategoryDialog from "../components/AddCategoryDialog";
 import AddItemDialog from "../components/AddItemDialog";
+import ImageUploadField from "../components/ImageUploadField";
+import { uploadImage, deleteImage } from "../services/imageUploadService";
 
 // Define the ManagerDashboard component
 const ManagerDashboard = () => {
@@ -294,6 +296,10 @@ const ManagerDashboard = () => {
   const handleSaveBanner = async () => {
     try {
       if (editBanner) {
+        // If image was changed, delete old image from Storage
+        if (editBanner.image && editBanner.image !== bannerForm.image) {
+          await deleteImage(editBanner.image);
+        }
         await updateBanner(editBanner.id, bannerForm);
       } else {
         await addBanner(bannerForm);
@@ -312,6 +318,11 @@ const ManagerDashboard = () => {
 
   const handleConfirmDeleteBanner = async () => {
     try {
+      // Delete image from Firebase Storage if it's a Firebase Storage URL
+      if (bannerToDelete?.image) {
+        await deleteImage(bannerToDelete.image);
+      }
+      // Delete banner from Firestore
       await deleteBanner(bannerToDelete.id);
       setDeleteBannerDialogOpen(false);
       setBannerToDelete(null);
@@ -319,6 +330,13 @@ const ManagerDashboard = () => {
     } catch (error) {
       console.error("Error deleting banner:", error);
     }
+  };
+
+  // Image upload handler
+  const handleImageUpload = async (file, folder) => {
+    const userData = await getUserData(currentUser.uid);
+    const clientId = userData.storeId || "demo-restaurant";
+    return await uploadImage(file, folder, clientId);
   };
 
   // --- RENDER LOGIC ---
@@ -365,64 +383,202 @@ const ManagerDashboard = () => {
 
   // 3. Render the full dashboard if store is assigned
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
+    <Box
+      sx={{
+        minHeight: "100vh",
+        bgcolor: "#F5F5F7",
+        overflowX: "hidden",
+        width: "100%",
+      }}
+    >
       {/* Top Application Bar */}
       <AppBar
         position="sticky"
-        elevation={0}
+        elevation={2}
         sx={{
           background: "linear-gradient(135deg, #2C1A12 0%, #3D2817 100%)",
+          boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+          width: "100%",
         }}
       >
-        <Toolbar sx={{ py: { xs: 1, sm: 1.5 }, px: { xs: 1, sm: 2 } }}>
-          <Box sx={{ display: "flex", alignItems: "center", flexGrow: 1 }}>
-            <Storefront sx={{ color: "#F2C14E", mr: 2, fontSize: 30 }} />
-            <Box>
-              <Typography variant="h6" sx={{ color: "white" }}>
+        <Toolbar
+          sx={{
+            py: { xs: 0.75, sm: 1.5 },
+            px: { xs: 1, sm: 3 },
+            minHeight: { xs: 56, sm: 64 },
+            width: "100%",
+            maxWidth: "100vw",
+          }}
+        >
+          {/* Logo and Title */}
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              flexGrow: 1,
+              minWidth: 0,
+              overflow: "hidden",
+              mr: 1,
+            }}
+          >
+            <Storefront
+              sx={{
+                color: "#F2C14E",
+                mr: { xs: 1, sm: 2 },
+                fontSize: { xs: 24, sm: 30 },
+              }}
+            />
+            <Box sx={{ minWidth: 0, overflow: "hidden" }}>
+              <Typography
+                variant="h6"
+                sx={{
+                  color: "white",
+                  fontSize: { xs: "0.938rem", sm: "1.25rem" },
+                  fontWeight: 700,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
                 Manager Dashboard
               </Typography>
-              <Typography variant="caption" sx={{ color: "#F2C14E" }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: "#F2C14E",
+                  fontSize: { xs: "0.688rem", sm: "0.75rem" },
+                  display: { xs: "none", sm: "block" },
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
                 {currentUser?.email}
               </Typography>
             </Box>
           </Box>
-          <Box sx={{ display: "flex", gap: { xs: 0.5, sm: 1.5 } }}>
+
+          {/* Action Buttons */}
+          <Box
+            sx={{
+              display: "flex",
+              gap: { xs: 0.5, sm: 1 },
+              flexShrink: 0,
+              alignItems: "center",
+            }}
+          >
+            {/* Menu Button */}
             <Button
-              startIcon={<Restaurant />}
               onClick={() => setViewMode("menu")}
               variant={viewMode === "menu" ? "contained" : "outlined"}
+              size="small"
               sx={{
                 color: viewMode === "menu" ? "#2C1A12" : "white",
                 bgcolor: viewMode === "menu" ? "#F2C14E" : "transparent",
-                borderColor: "rgba(242, 193, 78, 0.3)",
-                display: { xs: "none", sm: "flex" },
+                borderColor: "rgba(242, 193, 78, 0.5)",
+                minWidth: { xs: 32, sm: "auto" },
+                width: { xs: 32, sm: "auto" },
+                height: { xs: 32, sm: "auto" },
+                px: { xs: 0, sm: 2 },
+                fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                fontWeight: 600,
+                borderRadius: 2,
+                "&:hover": {
+                  bgcolor:
+                    viewMode === "menu" ? "#FFD966" : "rgba(242, 193, 78, 0.1)",
+                  borderColor: "#F2C14E",
+                },
               }}
             >
-              Menu
+              <Restaurant
+                sx={{ fontSize: { xs: 18, sm: 20 }, mr: { xs: 0, sm: 0.75 } }}
+              />
+              <Box
+                component="span"
+                sx={{ display: { xs: "none", sm: "inline" } }}
+              >
+                Menu
+              </Box>
             </Button>
+
+            {/* Banners Button */}
             <Button
-              startIcon={<PhotoLibrary />}
               onClick={() => setViewMode("banners")}
               variant={viewMode === "banners" ? "contained" : "outlined"}
+              size="small"
               sx={{
                 color: viewMode === "banners" ? "#2C1A12" : "white",
                 bgcolor: viewMode === "banners" ? "#F2C14E" : "transparent",
-                borderColor: "rgba(242, 193, 78, 0.3)",
-                display: { xs: "none", sm: "flex" },
+                borderColor: "rgba(242, 193, 78, 0.5)",
+                minWidth: { xs: 32, sm: "auto" },
+                width: { xs: 32, sm: "auto" },
+                height: { xs: 32, sm: "auto" },
+                px: { xs: 0, sm: 2 },
+                fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                fontWeight: 600,
+                borderRadius: 2,
+                "&:hover": {
+                  bgcolor:
+                    viewMode === "banners"
+                      ? "#FFD966"
+                      : "rgba(242, 193, 78, 0.1)",
+                  borderColor: "#F2C14E",
+                },
               }}
             >
-              Banners
+              <PhotoLibrary
+                sx={{ fontSize: { xs: 18, sm: 20 }, mr: { xs: 0, sm: 0.75 } }}
+              />
+              <Box
+                component="span"
+                sx={{ display: { xs: "none", sm: "inline" } }}
+              >
+                Banners
+              </Box>
             </Button>
+
+            {/* View Menu Button - Hidden on mobile */}
             <Button
-              startIcon={<Visibility />}
               onClick={() => navigate("/")}
               variant="outlined"
-              sx={{ color: "white", borderColor: "rgba(242, 193, 78, 0.3)" }}
+              size="small"
+              sx={{
+                color: "white",
+                borderColor: "rgba(242, 193, 78, 0.5)",
+                minWidth: "auto",
+                px: 2,
+                display: { xs: "none", md: "flex" },
+                fontSize: "0.875rem",
+                fontWeight: 600,
+                borderRadius: 2,
+                "&:hover": {
+                  bgcolor: "rgba(242, 193, 78, 0.1)",
+                  borderColor: "#F2C14E",
+                },
+              }}
             >
+              <Visibility sx={{ fontSize: 20, mr: 0.75 }} />
               View Menu
             </Button>
-            <Button onClick={handleLogout} variant="contained" color="error">
-              <Logout />
+
+            {/* Logout Button */}
+            <Button
+              onClick={handleLogout}
+              variant="contained"
+              size="small"
+              sx={{
+                bgcolor: "#D32F2F",
+                minWidth: { xs: 32, sm: "auto" },
+                width: { xs: 32, sm: "auto" },
+                height: { xs: 32, sm: "auto" },
+                px: { xs: 0, sm: 1.5 },
+                borderRadius: 2,
+                "&:hover": {
+                  bgcolor: "#C62828",
+                },
+              }}
+            >
+              <Logout sx={{ fontSize: { xs: 16, sm: 20 } }} />
             </Button>
           </Box>
         </Toolbar>
@@ -439,62 +595,118 @@ const ManagerDashboard = () => {
               top: 80,
               zIndex: 100,
               borderBottom: "1px solid #eee",
+              width: "100%",
+              overflowX: "hidden",
             }}
           >
-            <Container maxWidth="xl">
+            <Container maxWidth="xl" sx={{ px: { xs: 1, sm: 2, md: 3 } }}>
               <Box
                 sx={{
                   display: "flex",
-                  alignItems: "center",
+                  flexDirection: { xs: "column", sm: "row" },
+                  alignItems: { xs: "stretch", sm: "center" },
                   justifyContent: "space-between",
                   py: 1,
+                  gap: { xs: 1, sm: 0 },
                 }}
               >
-                <Tabs
-                  value={selectedCategoryId}
-                  onChange={handleTabChange}
-                  variant="scrollable"
-                >
-                  {categories.map((category) => (
-                    <Tab
-                      key={category.id}
-                      label={
-                        <Box
-                          sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                        >
-                          {category.icon && (
-                            <span style={{ fontSize: "1.2rem" }}>
-                              {category.icon}
-                            </span>
-                          )}
-                          {category.name}
-                          {!category.isActive && (
-                            <Chip
-                              label="Hidden"
-                              size="small"
-                              sx={{ ml: 1, height: 18 }}
-                            />
-                          )}
-                        </Box>
-                      }
-                      value={category.id}
-                      sx={{ opacity: category.isActive ? 1 : 0.6 }}
-                    />
-                  ))}
-                </Tabs>
+                <Box sx={{ overflowX: "auto", flex: 1 }}>
+                  <Tabs
+                    value={selectedCategoryId}
+                    onChange={handleTabChange}
+                    variant="scrollable"
+                    scrollButtons="auto"
+                    sx={{
+                      minHeight: { xs: 40, sm: 48 },
+                      "& .MuiTab-root": {
+                        minHeight: { xs: 40, sm: 48 },
+                        fontSize: { xs: "0.8rem", sm: "0.875rem" },
+                        px: { xs: 1, sm: 2 },
+                      },
+                    }}
+                  >
+                    {categories.map((category) => (
+                      <Tab
+                        key={category.id}
+                        label={
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 0.5,
+                            }}
+                          >
+                            {category.icon && (
+                              <span
+                                style={{
+                                  fontSize: { xs: "1rem", sm: "1.2rem" },
+                                }}
+                              >
+                                {category.icon}
+                              </span>
+                            )}
+                            <span>{category.name}</span>
+                            {!category.isActive && (
+                              <Chip
+                                label="Hidden"
+                                size="small"
+                                sx={{
+                                  ml: 0.5,
+                                  height: { xs: 16, sm: 18 },
+                                  fontSize: { xs: "0.65rem", sm: "0.7rem" },
+                                }}
+                              />
+                            )}
+                          </Box>
+                        }
+                        value={category.id}
+                        sx={{ opacity: category.isActive ? 1 : 0.6 }}
+                      />
+                    ))}
+                  </Tabs>
+                </Box>
                 <Button
                   variant="contained"
-                  startIcon={<Add />}
+                  startIcon={
+                    <Add sx={{ fontSize: { xs: "1rem", sm: "1.25rem" } }} />
+                  }
                   onClick={() => setAddCategoryDialogOpen(true)}
+                  size="small"
+                  sx={{
+                    minWidth: { xs: "100%", sm: "auto" },
+                    height: { xs: 36, sm: 40 },
+                    fontSize: { xs: "0.8rem", sm: "0.875rem" },
+                    px: { xs: 2, sm: 2 },
+                    whiteSpace: "nowrap",
+                  }}
                 >
-                  Add Category
+                  <Box
+                    component="span"
+                    sx={{ display: { xs: "none", sm: "inline" } }}
+                  >
+                    Add Category
+                  </Box>
+                  <Box
+                    component="span"
+                    sx={{ display: { xs: "inline", sm: "none" } }}
+                  >
+                    Add
+                  </Box>
                 </Button>
               </Box>
             </Container>
           </Box>
 
           {/* Main Content Grid for Menu Items */}
-          <Container maxWidth="xl" sx={{ py: 4 }}>
+          <Container
+            maxWidth="xl"
+            sx={{
+              py: { xs: 2.5, sm: 3, md: 4 },
+              px: { xs: 1.5, sm: 2, md: 3 },
+              width: "100%",
+              maxWidth: "100%",
+            }}
+          >
             {loadingData ? (
               <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
                 <CircularProgress size={60} />
@@ -504,31 +716,59 @@ const ManagerDashboard = () => {
                 <Box
                   sx={{
                     display: "flex",
+                    flexDirection: { xs: "column", md: "row" },
                     justifyContent: "space-between",
-                    alignItems: "center",
+                    alignItems: { xs: "flex-start", md: "center" },
                     mb: 3,
+                    gap: { xs: 2, md: 0 },
                   }}
                 >
-                  <Typography variant="h6" color="text.secondary">
+                  <Typography
+                    variant="h6"
+                    color="text.secondary"
+                    sx={{
+                      fontSize: { xs: "0.95rem", sm: "1.1rem", md: "1.25rem" },
+                    }}
+                  >
                     {items.length} items in this category
                   </Typography>
                   {selectedCategoryId &&
                     categories.find((c) => c.id === selectedCategoryId) && (
                       <Box
-                        sx={{ display: "flex", alignItems: "center", gap: 2 }}
+                        sx={{
+                          display: "flex",
+                          flexDirection: { xs: "column", sm: "row" },
+                          alignItems: { xs: "stretch", sm: "center" },
+                          gap: { xs: 1, sm: 1.5, md: 2 },
+                          width: { xs: "100%", sm: "auto" },
+                        }}
                       >
                         <Button
                           variant="contained"
                           color="primary"
-                          startIcon={<Add />}
+                          startIcon={
+                            <Add
+                              sx={{ fontSize: { xs: "1rem", sm: "1.25rem" } }}
+                            />
+                          }
                           onClick={() => setAddItemDialogOpen(true)}
+                          size="small"
+                          sx={{
+                            fontSize: { xs: "0.8rem", sm: "0.875rem" },
+                            height: { xs: 36, sm: 40 },
+                            px: { xs: 2, sm: 2 },
+                          }}
                         >
                           Add Item
                         </Button>
                         <Button
                           variant="outlined"
                           color="error"
-                          startIcon={<Delete />}
+                          startIcon={
+                            <Delete
+                              sx={{ fontSize: { xs: "1rem", sm: "1.25rem" } }}
+                            />
+                          }
                           onClick={() =>
                             handleDeleteCategoryClick(
                               categories.find(
@@ -536,12 +776,30 @@ const ManagerDashboard = () => {
                               )
                             )
                           }
+                          size="small"
+                          sx={{
+                            fontSize: { xs: "0.8rem", sm: "0.875rem" },
+                            height: { xs: 36, sm: 40 },
+                            px: { xs: 2, sm: 2 },
+                          }}
                         >
-                          Delete Category
+                          <Box
+                            component="span"
+                            sx={{ display: { xs: "none", sm: "inline" } }}
+                          >
+                            Delete Category
+                          </Box>
+                          <Box
+                            component="span"
+                            sx={{ display: { xs: "inline", sm: "none" } }}
+                          >
+                            Delete
+                          </Box>
                         </Button>
                         <FormControlLabel
                           control={
                             <Switch
+                              size="small"
                               checked={
                                 categories.find(
                                   (c) => c.id === selectedCategoryId
@@ -554,20 +812,53 @@ const ManagerDashboard = () => {
                               }
                             />
                           }
-                          label="Category Visible"
+                          label={
+                            <Box
+                              component="span"
+                              sx={{
+                                fontSize: { xs: "0.8rem", sm: "0.875rem" },
+                              }}
+                            >
+                              <Box
+                                component="span"
+                                sx={{ display: { xs: "none", sm: "inline" } }}
+                              >
+                                Category Visible
+                              </Box>
+                              <Box
+                                component="span"
+                                sx={{ display: { xs: "inline", sm: "none" } }}
+                              >
+                                Visible
+                              </Box>
+                            </Box>
+                          }
+                          sx={{
+                            m: 0,
+                            "& .MuiFormControlLabel-label": {
+                              fontSize: { xs: "0.8rem", sm: "0.875rem" },
+                            },
+                          }}
                         />
                       </Box>
                     )}
                 </Box>
 
                 {items.length > 0 ? (
-                  <Grid container spacing={3}>
+                  <Grid container spacing={{ xs: 1.5, sm: 2, md: 3 }}>
                     {items.map((item) => (
                       <Grid item xs={12} sm={6} md={4} lg={3} key={item.id}>
                         <Card
                           sx={{
                             opacity: item.isActive ? 1 : 0.6,
                             border: item.isActive ? "" : "2px dashed #d32f2f",
+                            borderRadius: { xs: 3, sm: 4 },
+                            boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+                            transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                            "&:hover": {
+                              transform: "translateY(-4px)",
+                              boxShadow: "0 12px 32px rgba(0,0,0,0.12)",
+                            },
                           }}
                         >
                           <CardMedia
@@ -575,23 +866,43 @@ const ManagerDashboard = () => {
                             height="180"
                             image={item.image}
                             alt={item.name}
+                            sx={{
+                              height: { xs: 160, sm: 180 },
+                              objectFit: "cover",
+                            }}
                           />
                           {!item.isActive && (
                             <Chip
                               label="Hidden"
                               color="error"
                               size="small"
-                              sx={{ position: "absolute", top: 8, right: 8 }}
+                              sx={{
+                                position: "absolute",
+                                top: 8,
+                                right: 8,
+                                fontSize: { xs: "0.688rem", sm: "0.75rem" },
+                              }}
                             />
                           )}
-                          <CardContent>
-                            <Typography variant="h6" component="div">
+                          <CardContent sx={{ p: { xs: 2, sm: 2.5 } }}>
+                            <Typography
+                              variant="h6"
+                              component="div"
+                              sx={{
+                                fontSize: { xs: "1rem", sm: "1.125rem" },
+                                fontWeight: 600,
+                              }}
+                            >
                               {item.name}
                             </Typography>
                             <Typography
                               variant="body2"
                               color="text.secondary"
-                              sx={{ minHeight: 40 }}
+                              sx={{
+                                minHeight: 40,
+                                fontSize: { xs: "0.813rem", sm: "0.875rem" },
+                                lineHeight: 1.5,
+                              }}
                             >
                               {item.description}
                             </Typography>
@@ -622,21 +933,43 @@ const ManagerDashboard = () => {
                               )}
                             </Box>
                           </CardContent>
-                          <CardActions sx={{ display: "flex", gap: 1 }}>
+                          <CardActions
+                            sx={{
+                              display: "flex",
+                              gap: 1,
+                              p: { xs: 1.5, sm: 2 },
+                            }}
+                          >
                             <Button
-                              startIcon={<Edit />}
+                              startIcon={
+                                <Edit sx={{ fontSize: { xs: 18, sm: 20 } }} />
+                              }
                               fullWidth
                               variant="outlined"
+                              size="small"
                               onClick={() => handleEditClick(item)}
+                              sx={{
+                                fontSize: { xs: "0.813rem", sm: "0.875rem" },
+                                fontWeight: 600,
+                                borderRadius: 2,
+                              }}
                             >
                               Edit
                             </Button>
                             <Button
-                              startIcon={<Delete />}
+                              startIcon={
+                                <Delete sx={{ fontSize: { xs: 18, sm: 20 } }} />
+                              }
                               fullWidth
                               variant="outlined"
+                              size="small"
                               color="error"
                               onClick={() => handleDeleteItemClick(item)}
+                              sx={{
+                                fontSize: { xs: "0.813rem", sm: "0.875rem" },
+                                fontWeight: 600,
+                                borderRadius: 2,
+                              }}
                             >
                               Delete
                             </Button>
@@ -740,24 +1073,46 @@ const ManagerDashboard = () => {
 
       {/* Banner Management View */}
       {viewMode === "banners" && (
-        <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Container
+          maxWidth="lg"
+          sx={{
+            py: { xs: 2.5, sm: 3, md: 4 },
+            px: { xs: 1.5, sm: 2, md: 3 },
+            width: "100%",
+            maxWidth: "100%",
+          }}
+        >
           <Box
             sx={{
               display: "flex",
+              flexDirection: { xs: "column", sm: "row" },
               justifyContent: "space-between",
-              alignItems: "center",
+              alignItems: { xs: "stretch", sm: "center" },
               mb: 3,
+              gap: { xs: 1.5, sm: 0 },
             }}
           >
-            <Typography variant="h5" sx={{ fontWeight: 700 }}>
+            <Typography
+              variant="h5"
+              sx={{
+                fontWeight: 700,
+                fontSize: { xs: "1.25rem", sm: "1.5rem", md: "1.75rem" },
+              }}
+            >
               Banner Management
             </Typography>
             <Button
               variant="contained"
-              startIcon={<Add />}
+              startIcon={
+                <Add sx={{ fontSize: { xs: "1rem", sm: "1.25rem" } }} />
+              }
               onClick={handleAddBanner}
+              size="small"
               sx={{
                 background: "linear-gradient(135deg, #8C3A2B 0%, #C66F53 100%)",
+                fontSize: { xs: "0.8rem", sm: "0.875rem" },
+                height: { xs: 36, sm: 40 },
+                px: { xs: 2, sm: 2 },
               }}
             >
               Add Banner
@@ -797,7 +1152,7 @@ const ManagerDashboard = () => {
               </Button>
             </Box>
           ) : (
-            <Grid container spacing={3}>
+            <Grid container spacing={{ xs: 1.5, sm: 2, md: 3 }}>
               {banners.map((banner) => (
                 <Grid item xs={12} md={6} key={banner.id}>
                   <Card
@@ -805,7 +1160,9 @@ const ManagerDashboard = () => {
                       height: "100%",
                       display: "flex",
                       flexDirection: "column",
-                      transition: "all 0.2s",
+                      borderRadius: { xs: 3, sm: 4 },
+                      boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+                      transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                       "&:hover": {
                         transform: "translateY(-4px)",
                         boxShadow: "0 12px 32px rgba(0,0,0,0.12)",
@@ -817,35 +1174,66 @@ const ManagerDashboard = () => {
                       height="200"
                       image={banner.image}
                       alt={banner.title}
-                      sx={{ objectFit: "cover" }}
+                      sx={{
+                        objectFit: "cover",
+                        height: { xs: 160, sm: 200 },
+                      }}
                     />
-                    <CardContent sx={{ flexGrow: 1 }}>
+                    <CardContent sx={{ flexGrow: 1, p: { xs: 2, sm: 2.5 } }}>
                       <Typography
                         variant="h6"
                         gutterBottom
-                        sx={{ fontWeight: 600 }}
+                        sx={{
+                          fontWeight: 600,
+                          fontSize: { xs: "1rem", sm: "1.125rem" },
+                        }}
                       >
                         {banner.title}
                       </Typography>
-                      <Typography variant="body2" color="text.secondary">
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{
+                          fontSize: { xs: "0.813rem", sm: "0.875rem" },
+                          lineHeight: 1.5,
+                        }}
+                      >
                         {banner.description}
                       </Typography>
                     </CardContent>
-                    <CardActions>
+                    <CardActions
+                      sx={{ display: "flex", gap: 1, p: { xs: 1.5, sm: 2 } }}
+                    >
                       <Button
-                        startIcon={<Edit />}
+                        startIcon={
+                          <Edit sx={{ fontSize: { xs: 18, sm: 20 } }} />
+                        }
                         onClick={() => handleEditBanner(banner)}
                         fullWidth
                         variant="outlined"
+                        size="small"
+                        sx={{
+                          fontSize: { xs: "0.813rem", sm: "0.875rem" },
+                          fontWeight: 600,
+                          borderRadius: 2,
+                        }}
                       >
                         Edit
                       </Button>
                       <Button
-                        startIcon={<Delete />}
+                        startIcon={
+                          <Delete sx={{ fontSize: { xs: 18, sm: 20 } }} />
+                        }
                         onClick={() => handleDeleteBannerClick(banner)}
                         fullWidth
                         variant="outlined"
+                        size="small"
                         color="error"
+                        sx={{
+                          fontSize: { xs: "0.813rem", sm: "0.875rem" },
+                          fontWeight: 600,
+                          borderRadius: 2,
+                        }}
                       >
                         Delete
                       </Button>
@@ -892,41 +1280,16 @@ const ManagerDashboard = () => {
                   multiline
                   rows={2}
                 />
-                <TextField
-                  label="Image URL"
+                <ImageUploadField
                   value={bannerForm.image}
-                  onChange={(e) =>
-                    setBannerForm({ ...bannerForm, image: e.target.value })
+                  onChange={(url) =>
+                    setBannerForm({ ...bannerForm, image: url })
                   }
-                  fullWidth
+                  onUpload={handleImageUpload}
+                  label="Banner"
+                  folder="banners"
                   required
-                  placeholder="https://example.com/banner.jpg"
                 />
-                {bannerForm.image && (
-                  <Box
-                    sx={{
-                      width: "100%",
-                      height: 200,
-                      borderRadius: 2,
-                      overflow: "hidden",
-                      border: "1px solid",
-                      borderColor: "divider",
-                    }}
-                  >
-                    <img
-                      src={bannerForm.image}
-                      alt="Preview"
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "cover",
-                      }}
-                      onError={(e) => {
-                        e.target.style.display = "none";
-                      }}
-                    />
-                  </Box>
-                )}
               </Box>
             </DialogContent>
             <DialogActions>
