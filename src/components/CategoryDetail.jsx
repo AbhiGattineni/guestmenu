@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Box,
   Container,
@@ -10,8 +10,23 @@ import {
   CircularProgress,
   Button,
   Divider,
+  Chip,
+  Paper,
+  Fab,
+  FormControl,
+  Select,
+  MenuItem,
+  InputLabel,
+  OutlinedInput,
 } from "@mui/material";
-import { ArrowBack, LocalFireDepartment, Grass } from "@mui/icons-material";
+import {
+  ArrowBack,
+  LocalFireDepartment,
+  Grass,
+  KeyboardArrowUp,
+  FilterList,
+  Clear,
+} from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { fetchMenuItems } from "../services/firebaseService";
 import { fetchSubcategories } from "../services/subcategoryService";
@@ -25,6 +40,8 @@ const CategoryDetail = ({ category, onBack }) => {
   const [items, setItems] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedFilter, setSelectedFilter] = useState(null);
+  const [showBackToTop, setShowBackToTop] = useState(false);
 
   // Handle back navigation - use onBack if provided, otherwise navigate to home
   const handleBack = () => {
@@ -33,6 +50,25 @@ const CategoryDetail = ({ category, onBack }) => {
     } else {
       navigate("/");
     }
+  };
+
+  // Handle filter selection
+  const handleFilterSelect = (filterId) => {
+    if (selectedFilter === filterId) {
+      // If clicking the same filter, clear it
+      setSelectedFilter(null);
+    } else {
+      // Set new filter
+      setSelectedFilter(filterId);
+    }
+    // Scroll to top when filtering
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // Clear all filters
+  const clearFilter = () => {
+    setSelectedFilter(null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   useEffect(() => {
@@ -58,7 +94,18 @@ const CategoryDetail = ({ category, onBack }) => {
     }
   }, [category]);
 
-  // Group items by subcategory
+  // Add scroll listener to show back to top button
+  useEffect(() => {
+    const handleScroll = () => {
+      // Show back to top button when scrolled down
+      setShowBackToTop(window.scrollY > 300);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Group items by subcategory and apply filtering
   const groupedItems = React.useMemo(() => {
     const groups = {};
 
@@ -71,8 +118,13 @@ const CategoryDetail = ({ category, onBack }) => {
       groups[key].push(item);
     });
 
+    // If a filter is selected, only return that group
+    if (selectedFilter) {
+      return { [selectedFilter]: groups[selectedFilter] || [] };
+    }
+
     return groups;
-  }, [items]);
+  }, [items, selectedFilter]);
 
   if (loading) {
     return (
@@ -172,6 +224,267 @@ const CategoryDetail = ({ category, onBack }) => {
             </Box>
           </Box>
         </Box>
+
+        {/* Filter Section */}
+        {subcategories.length > 1 && (
+          <Box sx={{ mb: 3 }}>
+            {/* Filter Header */}
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                mb: 1.5,
+              }}
+            >
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1,
+                }}
+              >
+                <FilterList
+                  sx={{
+                    color: "#8C3A2B",
+                    fontSize: { xs: 18, sm: 20 },
+                  }}
+                />
+                <Typography
+                  variant="body1"
+                  sx={{
+                    fontWeight: 600,
+                    color: "#8C3A2B",
+                    fontSize: { xs: "0.875rem", sm: "1rem" },
+                  }}
+                >
+                  Filter
+                </Typography>
+              </Box>
+
+              {selectedFilter && (
+                <Button
+                  startIcon={<Clear />}
+                  onClick={clearFilter}
+                  size="small"
+                  sx={{
+                    color: "#757575",
+                    fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: 2,
+                    px: 1.5,
+                    py: 0.5,
+                    minWidth: "auto",
+                    "&:hover": {
+                      background: "rgba(140, 58, 43, 0.08)",
+                      color: "#8C3A2B",
+                    },
+                  }}
+                >
+                  Clear
+                </Button>
+              )}
+            </Box>
+
+            {/* Horizontal Scrollable Filter Buttons */}
+            <Box
+              sx={{
+                display: "flex",
+                gap: 1,
+                overflowX: "auto",
+                pb: 1,
+                px: 0.5,
+                "&::-webkit-scrollbar": {
+                  height: 4,
+                },
+                "&::-webkit-scrollbar-thumb": {
+                  background: "rgba(140, 58, 43, 0.3)",
+                  borderRadius: 2,
+                },
+                "&::-webkit-scrollbar-track": {
+                  background: "rgba(140, 58, 43, 0.1)",
+                  borderRadius: 2,
+                },
+              }}
+            >
+              {/* All Items Button */}
+              <Button
+                variant={!selectedFilter ? "contained" : "outlined"}
+                onClick={clearFilter}
+                sx={{
+                  flexShrink: 0,
+                  px: 2,
+                  py: 0.75,
+                  borderRadius: 3,
+                  fontWeight: 600,
+                  fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                  textTransform: "none",
+                  minWidth: "auto",
+                  whiteSpace: "nowrap",
+                  ...(!selectedFilter
+                    ? {
+                        background:
+                          "linear-gradient(135deg, #8C3A2B 0%, #C66F53 100%)",
+                        color: "white",
+                        boxShadow: "0 2px 8px rgba(140, 58, 43, 0.3)",
+                        "&:hover": {
+                          background:
+                            "linear-gradient(135deg, #A0442F 0%, #D87F5D 100%)",
+                          boxShadow: "0 4px 12px rgba(140, 58, 43, 0.4)",
+                        },
+                      }
+                    : {
+                        borderColor: "rgba(140, 58, 43, 0.3)",
+                        color: "#8C3A2B",
+                        "&:hover": {
+                          borderColor: "#8C3A2B",
+                          background: "rgba(140, 58, 43, 0.05)",
+                        },
+                      }),
+                  transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                }}
+              >
+                All Items
+              </Button>
+
+              {/* Subcategory Filter Buttons */}
+              {subcategories.map((subcategory) => {
+                const subcategoryItems = groupedItems[subcategory.id] || [];
+                if (subcategoryItems.length === 0) return null;
+
+                return (
+                  <Button
+                    key={subcategory.id}
+                    variant={
+                      selectedFilter === subcategory.id
+                        ? "contained"
+                        : "outlined"
+                    }
+                    onClick={() => handleFilterSelect(subcategory.id)}
+                    sx={{
+                      flexShrink: 0,
+                      px: 2,
+                      py: 0.75,
+                      borderRadius: 3,
+                      fontWeight: 600,
+                      fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                      textTransform: "none",
+                      minWidth: "auto",
+                      whiteSpace: "nowrap",
+                      ...(selectedFilter === subcategory.id
+                        ? {
+                            background:
+                              "linear-gradient(135deg, #8C3A2B 0%, #C66F53 100%)",
+                            color: "white",
+                            boxShadow: "0 2px 8px rgba(140, 58, 43, 0.3)",
+                            "&:hover": {
+                              background:
+                                "linear-gradient(135deg, #A0442F 0%, #D87F5D 100%)",
+                              boxShadow: "0 4px 12px rgba(140, 58, 43, 0.4)",
+                            },
+                          }
+                        : {
+                            borderColor: "rgba(140, 58, 43, 0.3)",
+                            color: "#8C3A2B",
+                            "&:hover": {
+                              borderColor: "#8C3A2B",
+                              background: "rgba(140, 58, 43, 0.05)",
+                            },
+                          }),
+                      transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                    }}
+                  >
+                    {subcategory.name}
+                  </Button>
+                );
+              })}
+
+              {/* Other Items Button */}
+              {groupedItems["none"] && groupedItems["none"].length > 0 && (
+                <Button
+                  variant={selectedFilter === "none" ? "contained" : "outlined"}
+                  onClick={() => handleFilterSelect("none")}
+                  sx={{
+                    flexShrink: 0,
+                    px: 2,
+                    py: 0.75,
+                    borderRadius: 3,
+                    fontWeight: 600,
+                    fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                    textTransform: "none",
+                    minWidth: "auto",
+                    whiteSpace: "nowrap",
+                    ...(selectedFilter === "none"
+                      ? {
+                          background:
+                            "linear-gradient(135deg, #8C3A2B 0%, #C66F53 100%)",
+                          color: "white",
+                          boxShadow: "0 2px 8px rgba(140, 58, 43, 0.3)",
+                          "&:hover": {
+                            background:
+                              "linear-gradient(135deg, #A0442F 0%, #D87F5D 100%)",
+                            boxShadow: "0 4px 12px rgba(140, 58, 43, 0.4)",
+                          },
+                        }
+                      : {
+                          borderColor: "rgba(140, 58, 43, 0.3)",
+                          color: "#8C3A2B",
+                          "&:hover": {
+                            borderColor: "#8C3A2B",
+                            background: "rgba(140, 58, 43, 0.05)",
+                          },
+                        }),
+                    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                  }}
+                >
+                  Other Items
+                </Button>
+              )}
+            </Box>
+          </Box>
+        )}
+
+        {/* Filter Status Message */}
+        {selectedFilter && (
+          <Box
+            sx={{
+              mb: 3,
+              p: 2,
+              borderRadius: 2,
+              background:
+                "linear-gradient(135deg, rgba(140, 58, 43, 0.1) 0%, rgba(198, 111, 83, 0.1) 100%)",
+              border: "1px solid rgba(140, 58, 43, 0.2)",
+              textAlign: "center",
+            }}
+          >
+            <Typography
+              variant="body1"
+              sx={{
+                fontWeight: 600,
+                color: "#8C3A2B",
+                fontSize: { xs: "0.875rem", sm: "1rem" },
+              }}
+            >
+              {selectedFilter === "none"
+                ? "Showing: Other Items"
+                : `Showing: ${
+                    subcategories.find((sub) => sub.id === selectedFilter)
+                      ?.name || "Selected Items"
+                  }`}
+            </Typography>
+            <Typography
+              variant="body2"
+              sx={{
+                color: "#757575",
+                fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                mt: 0.5,
+              }}
+            >
+              Click "Show All" to view all items
+            </Typography>
+          </Box>
+        )}
 
         {/* Menu Items - Organized by Subheadings */}
         {items.length === 0 ? (
@@ -509,6 +822,32 @@ const CategoryDetail = ({ category, onBack }) => {
           </Box>
         )}
       </Container>
+
+      {/* Back to Top Button */}
+      {showBackToTop && (
+        <Fab
+          color="primary"
+          size="medium"
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          sx={{
+            position: "fixed",
+            bottom: { xs: 16, sm: 24 },
+            right: { xs: 16, sm: 24 },
+            zIndex: 1000,
+            background: "linear-gradient(135deg, #8C3A2B 0%, #C66F53 100%)",
+            boxShadow: "0 8px 24px rgba(140, 58, 43, 0.3)",
+            "&:hover": {
+              background: "linear-gradient(135deg, #A0442F 0%, #D87F5D 100%)",
+              boxShadow: "0 12px 32px rgba(140, 58, 43, 0.4)",
+              transform: "scale(1.05)",
+            },
+            transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+          }}
+          title="Back to top"
+        >
+          <KeyboardArrowUp />
+        </Fab>
+      )}
     </Box>
   );
 };
