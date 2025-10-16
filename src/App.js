@@ -7,6 +7,7 @@ import LoginPage from "./pages/LoginPage";
 import ManagerDashboard from "./pages/ManagerDashboard";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard.jsx";
 import UnauthorizedPage from "./pages/UnauthorizedPage.jsx";
+import CategoryDetailPage from "./pages/CategoryDetailPage";
 import withRoleProtection from "./auth/withRoleProtection.jsx";
 
 const ProtectedManagerDashboard = withRoleProtection(ManagerDashboard, [
@@ -111,6 +112,12 @@ function App() {
           <Routes>
             {/* Smart Home Route - shows HomePage or CustomerMenu based on subdomain */}
             <Route path="/" element={<SmartHome />} />
+
+            {/* Category Detail Route - shows category items */}
+            <Route
+              path="/category/:categoryName"
+              element={<CategoryDetailPage />}
+            />
 
             {/* Auth Routes */}
             <Route path="/login" element={<LoginPage />} />

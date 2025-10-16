@@ -11,7 +11,6 @@ import { useNavigate } from "react-router-dom";
 import RestaurantLogo from "../components/RestaurantLogo";
 import PromoSlider from "../components/PromoSlider";
 import MenuCategories from "../components/MenuCategories";
-import CategoryDetail from "../components/CategoryDetail";
 import { useAuth } from "../context/AuthContext";
 import {
   fetchRestaurantInfo,
@@ -31,7 +30,6 @@ const CustomerMenu = () => {
   const [restaurantInfo, setRestaurantInfo] = useState(null);
   const [banners, setBanners] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState(null);
 
   // Fetch all data on component mount
   useEffect(() => {
@@ -66,14 +64,9 @@ const CustomerMenu = () => {
 
   // Handle category click
   const handleCategoryClick = (category) => {
-    setSelectedCategory(category);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  // Handle back to categories
-  const handleBackToCategories = () => {
-    setSelectedCategory(null);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    // Encode the category name for URL
+    const encodedCategoryName = encodeURIComponent(category.name);
+    navigate(`/category/${encodedCategoryName}`);
   };
 
   // Loading state
@@ -163,21 +156,14 @@ const CustomerMenu = () => {
         />
       )}
 
-      {/* Promotional Banners Slider - Only show on main view */}
-      {!selectedCategory && <PromoSlider banners={banners} />}
+      {/* Promotional Banners Slider */}
+      <PromoSlider banners={banners} />
 
-      {/* Conditional Rendering: Categories or Category Detail */}
-      {selectedCategory ? (
-        <CategoryDetail
-          category={selectedCategory}
-          onBack={handleBackToCategories}
-        />
-      ) : (
-        <MenuCategories
-          categories={categories}
-          onCategoryClick={handleCategoryClick}
-        />
-      )}
+      {/* Menu Categories */}
+      <MenuCategories
+        categories={categories}
+        onCategoryClick={handleCategoryClick}
+      />
 
       {/* Floating Action Buttons - Manager Access */}
       <Box

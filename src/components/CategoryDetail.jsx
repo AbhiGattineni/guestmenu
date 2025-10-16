@@ -12,6 +12,7 @@ import {
   Divider,
 } from "@mui/material";
 import { ArrowBack, LocalFireDepartment, Grass } from "@mui/icons-material";
+import { useNavigate } from "react-router-dom";
 import { fetchMenuItems } from "../services/firebaseService";
 import { fetchSubcategories } from "../services/subcategoryService";
 
@@ -20,9 +21,19 @@ import { fetchSubcategories } from "../services/subcategoryService";
  * Displays menu items for a selected category with subheadings (subcategories)
  */
 const CategoryDetail = ({ category, onBack }) => {
+  const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Handle back navigation - use onBack if provided, otherwise navigate to home
+  const handleBack = () => {
+    if (onBack) {
+      onBack();
+    } else {
+      navigate("/");
+    }
+  };
 
   useEffect(() => {
     const loadData = async () => {
@@ -100,7 +111,7 @@ const CategoryDetail = ({ category, onBack }) => {
         <Box sx={{ mb: { xs: 3, sm: 4 } }}>
           <Button
             startIcon={<ArrowBack sx={{ fontSize: { xs: 20, sm: 24 } }} />}
-            onClick={onBack}
+            onClick={handleBack}
             sx={{
               mb: 2,
               color: "text.primary",
