@@ -2,39 +2,67 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-const LoginPage = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+const SignupPage = () => {
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    password: "",
+    confirmPassword: "",
+  });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const { login, googleLogin } = useAuth();
+  const { signup, googleSignup } = useAuth();
   const navigate = useNavigate();
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+
+    // Validation
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      setError("Password must be at least 6 characters");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      await login(email, password);
-      navigate("/dashboard");
+      await signup(formData.email, formData.password, {
+        name: formData.name,
+        phone: formData.phone,
+      });
+      navigate("/verify-email");
     } catch (err) {
-      setError(err.message || "Failed to login");
+      setError(err.message || "Failed to create account");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGoogleSignIn = async () => {
+  const handleGoogleSignUp = async () => {
     setError("");
     setGoogleLoading(true);
 
     try {
-      await googleLogin();
+      await googleSignup();
       navigate("/onboarding");
     } catch (err) {
-      setError(err.message || "Failed to sign in with Google");
+      setError(err.message || "Failed to sign up with Google");
     } finally {
       setGoogleLoading(false);
     }
@@ -45,7 +73,7 @@ const LoginPage = () => {
       <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-800 mb-2">GuestMenu</h1>
-          <p className="text-gray-600">Sign in to your account</p>
+          <p className="text-gray-600">Create your account</p>
         </div>
 
         {error && (
@@ -57,15 +85,45 @@ const LoginPage = () => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
+              Full Name
+            </label>
+            <input
+              type="text"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              required
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="John Doe"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Email
             </label>
             <input
               type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
               required
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="you@example.com"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Phone (Optional)
+            </label>
+            <input
+              type="tel"
+              name="phone"
+              value={formData.phone}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="+1 (555) 000-0000"
             />
           </div>
 
@@ -75,8 +133,24 @@ const LoginPage = () => {
             </label>
             <input
               type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              required
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="••••••••"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Confirm Password
+            </label>
+            <input
+              type="password"
+              name="confirmPassword"
+              value={formData.confirmPassword}
+              onChange={handleChange}
               required
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="••••••••"
@@ -88,7 +162,7 @@ const LoginPage = () => {
             disabled={loading}
             className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white font-semibold py-2 px-4 rounded-lg transition duration-200"
           >
-            {loading ? "Signing in..." : "Sign In"}
+            {loading ? "Creating account..." : "Create Account"}
           </button>
         </form>
 
@@ -98,16 +172,14 @@ const LoginPage = () => {
             <div className="w-full border-t border-gray-300"></div>
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white text-gray-500">
-              Or continue with
-            </span>
+            <span className="px-2 bg-white text-gray-500">Or sign up with</span>
           </div>
         </div>
 
-        {/* Google Sign In Button */}
+        {/* Google Sign Up Button */}
         <button
           type="button"
-          onClick={handleGoogleSignIn}
+          onClick={handleGoogleSignUp}
           disabled={googleLoading}
           className="mt-4 w-full bg-white border-2 border-gray-300 hover:border-gray-400 disabled:bg-gray-100 text-gray-700 font-semibold py-2 px-4 rounded-lg transition duration-200 flex items-center justify-center gap-2"
         >
@@ -129,16 +201,16 @@ const LoginPage = () => {
               fill="#EA4335"
             />
           </svg>
-          {googleLoading ? "Signing in..." : "Sign in with Google"}
+          {googleLoading ? "Creating account..." : "Sign up with Google"}
         </button>
 
         <div className="mt-6 text-center text-sm text-gray-600">
-          Don't have an account?{" "}
+          Already have an account?{" "}
           <Link
-            to="/signup"
+            to="/login"
             className="text-blue-500 hover:text-blue-600 font-semibold"
           >
-            Sign up
+            Sign in
           </Link>
         </div>
       </div>
@@ -146,4 +218,4 @@ const LoginPage = () => {
   );
 };
 
-export default LoginPage;
+export default SignupPage;
