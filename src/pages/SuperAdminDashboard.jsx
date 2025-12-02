@@ -8,6 +8,11 @@ import {
   getBusinessStatistics,
 } from "../services/superAdminService";
 import {
+  setUserRole,
+  deleteUser,
+  getUserRoleInfo,
+} from "../services/roleManagementService";
+import {
   getFirestore,
   doc,
   setDoc,
@@ -78,6 +83,16 @@ const SuperAdminDashboard = () => {
   const [itemLoading, setItemLoading] = useState(false);
   const [itemSuccess, setItemSuccess] = useState("");
 
+  // Role management states
+  const [userRoles, setUserRoles] = useState({}); // { userId: { role, subdomain } }
+  const [editingUser, setEditingUser] = useState(null);
+  const [editRoleModalOpen, setEditRoleModalOpen] = useState(false);
+  const [editRoleForm, setEditRoleForm] = useState({
+    role: "guest",
+    subdomain: "",
+  });
+  const [roleLoading, setRoleLoading] = useState(false);
+
   useEffect(() => {
     // Redirect if not super admin
     if (!isSuperAdminUser) {
@@ -92,6 +107,9 @@ const SuperAdminDashboard = () => {
         setStats(statsData);
         setBusinesses(statsData.businesses);
         setUsers(statsData.users);
+
+        // Fetch user roles
+        await fetchUserRoles(statsData.users);
       } catch (err) {
         console.error("Error fetching data:", err);
         setError("Failed to load data");
@@ -102,6 +120,22 @@ const SuperAdminDashboard = () => {
 
     fetchData();
   }, [isSuperAdminUser, navigate]);
+
+  // Fetch user roles from custom claims
+  const fetchUserRoles = async (usersList) => {
+    const rolesMap = {};
+    for (const userData of usersList) {
+      try {
+        const roleInfo = await getUserRoleInfo(userData.userId);
+        rolesMap[userData.userId] = roleInfo;
+      } catch (err) {
+        console.error(`Error fetching role for user ${userData.userId}:`, err);
+        // Default to guest if error
+        rolesMap[userData.userId] = { role: "guest", subdomain: null };
+      }
+    }
+    setUserRoles(rolesMap);
+  };
 
   const handleLogout = async () => {
     try {
@@ -147,6 +181,93 @@ const SuperAdminDashboard = () => {
     setNotification({
       ...notification,
       isOpen: false,
+    });
+  };
+
+  // Role management functions
+  const handleEditRole = (userData) => {
+    const currentRole = userRoles[userData.userId] || {
+      role: "guest",
+      subdomain: null,
+    };
+    setEditingUser(userData);
+    setEditRoleForm({
+      role: currentRole.role || "guest",
+      subdomain: currentRole.subdomain || "",
+    });
+    setEditRoleModalOpen(true);
+  };
+
+  const handleSaveRole = async () => {
+    if (!editingUser) return;
+
+    try {
+      setRoleLoading(true);
+      const { role, subdomain } = editRoleForm;
+
+      if (role === "host" && !subdomain) {
+        showNotification("error", "Please select a subdomain for host role.");
+        setRoleLoading(false);
+        return;
+      }
+
+      await setUserRole(
+        editingUser.userId,
+        role,
+        role === "host" ? subdomain : null
+      );
+
+      // Update local state
+      setUserRoles({
+        ...userRoles,
+        [editingUser.userId]: {
+          role,
+          subdomain: role === "host" ? subdomain : null,
+        },
+      });
+
+      showNotification("success", `User role updated to ${role} successfully!`);
+      setEditRoleModalOpen(false);
+      setEditingUser(null);
+      setEditRoleForm({ role: "guest", subdomain: "" });
+    } catch (err) {
+      console.error("Error updating user role:", err);
+      showNotification("error", err.message || "Failed to update user role.");
+    } finally {
+      setRoleLoading(false);
+    }
+  };
+
+  const handleDeleteUserClick = (userData) => {
+    // Prevent deletion of super admin
+    if (userData.profile?.email === "guestmenu0@gmail.com") {
+      showNotification("error", "Cannot delete super admin user.");
+      return;
+    }
+
+    setConfirmDialog({
+      isOpen: true,
+      title: "Delete User",
+      message: `Are you sure you want to delete user "${
+        userData.profile?.name || userData.profile?.email || userData.userId
+      }"? This action cannot be undone and will delete all associated data.`,
+      onConfirm: async () => {
+        try {
+          await deleteUser(userData.userId);
+          showNotification("success", "User deleted successfully!");
+          // Refresh users list
+          const statsData = await getBusinessStatistics();
+          setUsers(statsData.users);
+          setBusinesses(statsData.businesses);
+          // Remove from roles map
+          const newRoles = { ...userRoles };
+          delete newRoles[userData.userId];
+          setUserRoles(newRoles);
+        } catch (err) {
+          console.error("Error deleting user:", err);
+          showNotification("error", err.message || "Failed to delete user.");
+        }
+      },
     });
   };
 
@@ -1593,6 +1714,9 @@ const SuperAdminDashboard = () => {
                         Role
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">
+                        Subdomain
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">
                         User ID
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">
@@ -1601,56 +1725,127 @@ const SuperAdminDashboard = () => {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">
                         Created
                       </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">
+                        Actions
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {users.map((userData) => (
-                      <tr key={userData.userId} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-gray-900 font-medium">
-                          {userData.profile?.name || "Unknown"}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-gray-600">
-                          {userData.profile?.email || "N/A"}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span
-                            className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
-                              userData.profile?.email === "guestmenu0@gmail.com"
-                                ? "bg-red-100 text-red-800"
-                                : "bg-blue-100 text-blue-800"
-                            }`}
-                          >
-                            {userData.profile?.email === "guestmenu0@gmail.com"
-                              ? "👑 Super Admin"
-                              : "🏪 Business Owner"}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                          <code className="bg-gray-100 px-2 py-1 rounded">
-                            {userData.userId.substring(0, 8)}...
-                          </code>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span
-                            className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold ${
-                              userData.emailVerified
-                                ? "bg-green-100 text-green-800"
-                                : "bg-yellow-100 text-yellow-800"
-                            }`}
-                          >
-                            {userData.emailVerified ? "✓ Yes" : "⏳ Pending"}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                          {userData.createdAt
-                            ? new Date(
-                                userData.createdAt.toDate?.() ||
-                                  userData.createdAt
-                              ).toLocaleDateString()
-                            : "N/A"}
-                        </td>
-                      </tr>
-                    ))}
+                    {users.map((userData) => {
+                      const roleInfo = userRoles[userData.userId] || {
+                        role: "guest",
+                        subdomain: null,
+                      };
+                      const isSuperAdmin =
+                        userData.profile?.email === "guestmenu0@gmail.com" ||
+                        roleInfo.role === "superadmin";
+
+                      return (
+                        <tr key={userData.userId} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap text-gray-900 font-medium">
+                            {userData.profile?.name || "Unknown"}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-gray-600">
+                            {userData.profile?.email || "N/A"}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span
+                              className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
+                                isSuperAdmin
+                                  ? "bg-red-100 text-red-800"
+                                  : roleInfo.role === "host"
+                                  ? "bg-blue-100 text-blue-800"
+                                  : "bg-gray-100 text-gray-800"
+                              }`}
+                            >
+                              {isSuperAdmin
+                                ? "👑 Super Admin"
+                                : roleInfo.role === "host"
+                                ? "🏪 Host"
+                                : "👤 Guest"}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            {roleInfo.subdomain ? (
+                              <span className="text-blue-600 font-medium">
+                                {roleInfo.subdomain}
+                              </span>
+                            ) : (
+                              <span className="text-gray-400">—</span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            <code className="bg-gray-100 px-2 py-1 rounded">
+                              {userData.userId.substring(0, 8)}...
+                            </code>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span
+                              className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold ${
+                                userData.emailVerified
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-yellow-100 text-yellow-800"
+                              }`}
+                            >
+                              {userData.emailVerified ? "✓ Yes" : "⏳ Pending"}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            {userData.createdAt
+                              ? new Date(
+                                  userData.createdAt.toDate?.() ||
+                                    userData.createdAt
+                                ).toLocaleDateString()
+                              : "N/A"}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => handleEditRole(userData)}
+                                className="text-blue-600 hover:text-blue-800 font-semibold text-sm flex items-center gap-1"
+                                title="Edit Role"
+                              >
+                                <svg
+                                  className="w-4 h-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                  />
+                                </svg>
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => handleDeleteUserClick(userData)}
+                                className="text-red-600 hover:text-red-800 font-semibold text-sm flex items-center gap-1"
+                                title="Delete User"
+                                disabled={isSuperAdmin}
+                              >
+                                <svg
+                                  className="w-4 h-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                  />
+                                </svg>
+                                Delete
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -1675,6 +1870,105 @@ const SuperAdminDashboard = () => {
         title={confirmDialog.title}
         message={confirmDialog.message}
       />
+
+      {/* Edit Role Modal */}
+      {editRoleModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-60">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 transform transition-all duration-300 scale-100 opacity-100">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">
+              Edit User Role
+            </h3>
+            {editingUser && (
+              <p className="text-sm text-gray-600 mb-6">
+                Editing role for:{" "}
+                <strong>
+                  {editingUser.profile?.name ||
+                    editingUser.profile?.email ||
+                    editingUser.userId}
+                </strong>
+              </p>
+            )}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Role
+                </label>
+                <select
+                  value={editRoleForm.role}
+                  onChange={(e) =>
+                    setEditRoleForm({
+                      ...editRoleForm,
+                      role: e.target.value,
+                      subdomain:
+                        e.target.value === "host" ? editRoleForm.subdomain : "",
+                    })
+                  }
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="guest">Guest</option>
+                  <option value="host">Host</option>
+                  <option value="superadmin">Super Admin</option>
+                </select>
+              </div>
+              {editRoleForm.role === "host" && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Assign Subdomain
+                  </label>
+                  <select
+                    value={editRoleForm.subdomain}
+                    onChange={(e) =>
+                      setEditRoleForm({
+                        ...editRoleForm,
+                        subdomain: e.target.value,
+                      })
+                    }
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Select a subdomain</option>
+                    {businesses.map((business) => (
+                      <option
+                        key={business.subdomain}
+                        value={business.subdomain}
+                      >
+                        {business.subdomain}.guestmenu.com
+                      </option>
+                    ))}
+                  </select>
+                  {editRoleForm.role === "host" && !editRoleForm.subdomain && (
+                    <p className="text-xs text-red-600 mt-1">
+                      Subdomain is required for host role
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setEditRoleModalOpen(false);
+                  setEditingUser(null);
+                  setEditRoleForm({ role: "guest", subdomain: "" });
+                }}
+                className="px-5 py-2 rounded-lg text-gray-600 hover:bg-gray-100 font-medium transition-colors"
+                disabled={roleLoading}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveRole}
+                disabled={
+                  roleLoading ||
+                  (editRoleForm.role === "host" && !editRoleForm.subdomain)
+                }
+                className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {roleLoading ? "Saving..." : "Save"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

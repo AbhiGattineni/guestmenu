@@ -74,6 +74,7 @@ export const getAllBusinesses = async () => {
 
 /**
  * Get all users (businesses)
+ * Filters out temporary users created during onboarding that don't have Auth accounts
  * @returns {Promise<Array>} List of all users
  */
 export const getAllUsers = async () => {
@@ -84,23 +85,32 @@ export const getAllUsers = async () => {
     const users = [];
 
     for (const docSnap of snapshot.docs) {
+      const userId = docSnap.id;
+
+      // Skip temporary users (created during onboarding without Auth accounts)
+      // These are users with IDs starting with "temp_"
+      if (userId.startsWith("temp_")) {
+        console.log(`Skipping temporary user: ${userId}`);
+        continue;
+      }
+
       const userData = docSnap.data();
 
       // Fetch profile from subcollection
       try {
-        const profileRef = doc(db, "users", docSnap.id, "profile", "data");
+        const profileRef = doc(db, "users", userId, "profile", "data");
         const profileSnap = await getDoc(profileRef);
         const profileData = profileSnap.exists() ? profileSnap.data() : null;
 
         users.push({
-          userId: docSnap.id,
+          userId,
           ...userData,
           profile: profileData,
         });
       } catch (error) {
-        console.error(`Error fetching profile for user ${docSnap.id}:`, error);
+        console.error(`Error fetching profile for user ${userId}:`, error);
         users.push({
-          userId: docSnap.id,
+          userId,
           ...userData,
           profile: null,
         });
