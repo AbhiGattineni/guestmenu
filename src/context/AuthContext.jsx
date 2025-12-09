@@ -26,9 +26,35 @@ export const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
+  const [userRole, setUserRole] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const auth = getAuth();
+
+  // Helper function to get user role from ID token
+  const getUserRole = async (authUser) => {
+    try {
+      if (!authUser) return null;
+
+      // Get ID token to access custom claims
+      const token = await authUser.getIdTokenResult();
+      const claims = token.claims || {};
+
+      // Check for role in custom claims
+      const role = claims.role || "guest";
+      const subdomain = claims.subdomain || null;
+
+      console.log("User role from token:", { role, subdomain, claims });
+
+      return {
+        role,
+        subdomain,
+      };
+    } catch (error) {
+      console.error("Error getting user role:", error);
+      return { role: "guest", subdomain: null };
+    }
+  };
 
   // Set up auth state listener
   useEffect(() => {
@@ -39,9 +65,14 @@ export const AuthProvider = ({ children }) => {
           // Fetch user profile
           const profile = await getUserProfile(authUser.uid);
           setUserProfile(profile);
+
+          // Get user role from custom claims
+          const roleInfo = await getUserRole(authUser);
+          setUserRole(roleInfo);
         } else {
           setUser(null);
           setUserProfile(null);
+          setUserRole(null);
         }
       } catch (err) {
         console.error("Error loading user profile:", err);
@@ -113,8 +144,15 @@ export const AuthProvider = ({ children }) => {
         const profile = await getUserProfile(authUser.uid);
         setUserProfile(profile);
 
+        // Get user role from custom claims
+        const roleInfo = await getUserRole(authUser);
+        setUserRole(roleInfo);
+
+        console.log("User logged in with role:", roleInfo);
+
         return {
           user: authUser,
+          role: roleInfo,
           success: true,
           message: "Logged in successfully.",
         };
@@ -175,6 +213,12 @@ export const AuthProvider = ({ children }) => {
       const result = await signInWithGoogle();
       setUser(result.user);
       setUserProfile(result.profile);
+
+      // Get user role from custom claims
+      const roleInfo = await getUserRole(result.user);
+      setUserRole(roleInfo);
+      console.log("User logged in with Google, role:", roleInfo);
+
       return result;
     } catch (err) {
       setError(err.message);
@@ -185,6 +229,7 @@ export const AuthProvider = ({ children }) => {
   const value = {
     user,
     userProfile,
+    userRole,
     loading,
     error,
     signup,

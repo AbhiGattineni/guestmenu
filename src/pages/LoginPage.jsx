@@ -17,7 +17,16 @@ const LoginPage = () => {
     setLoading(true);
 
     try {
-      await login(email, password);
+      const result = await login(email, password);
+      // Log role information
+      if (result.role) {
+        console.log("User logged in with role:", result.role);
+        console.log(
+          `Role: ${result.role.role}, Subdomain: ${
+            result.role.subdomain || "N/A"
+          }`
+        );
+      }
       navigate("/dashboard");
     } catch (err) {
       setError(err.message || "Failed to login");
@@ -31,7 +40,12 @@ const LoginPage = () => {
     setGoogleLoading(true);
 
     try {
-      await googleLogin();
+      const result = await googleLogin();
+      // Log role information
+      if (result && result.user) {
+        console.log("User logged in with Google");
+        // Role will be logged in AuthContext
+      }
       navigate("/onboarding");
     } catch (err) {
       setError(err.message || "Failed to sign in with Google");
