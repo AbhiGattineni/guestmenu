@@ -43,10 +43,13 @@ export const getAllBusinesses = async () => {
       const userId = subdomainData.userId;
 
       try {
-        // Fetch owner profile from subcollection
-        const profileRef = doc(db, "users", userId, "profile", "data");
-        const profileSnap = await getDoc(profileRef);
-        const profileData = profileSnap.exists() ? profileSnap.data() : null;
+        // Fetch owner profile - profile is stored as a map field on the user document
+        const userRef = doc(db, "users", userId);
+        const userSnap = await getDoc(userRef);
+        const profileData =
+          userSnap.exists() && userSnap.data().profile
+            ? userSnap.data().profile
+            : null;
 
         businesses.push({
           subdomain: doc.id,
@@ -96,25 +99,15 @@ export const getAllUsers = async () => {
 
       const userData = docSnap.data();
 
-      // Fetch profile from subcollection
-      try {
-        const profileRef = doc(db, "users", userId, "profile", "data");
-        const profileSnap = await getDoc(profileRef);
-        const profileData = profileSnap.exists() ? profileSnap.data() : null;
+      // Profile is stored as a map field directly on the user document
+      // The profile data is already in userData.profile when we fetch the document
+      const profileData = userData.profile || null;
 
-        users.push({
-          userId,
-          ...userData,
-          profile: profileData,
-        });
-      } catch (error) {
-        console.error(`Error fetching profile for user ${userId}:`, error);
-        users.push({
-          userId,
-          ...userData,
-          profile: null,
-        });
-      }
+      users.push({
+        userId,
+        ...userData,
+        profile: profileData,
+      });
     }
 
     return users;

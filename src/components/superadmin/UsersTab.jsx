@@ -32,6 +32,7 @@ import {
   assignStoreToManager,
   getAllStores,
 } from "../../services/superAdminService";
+import { getUserRoleInfo } from "../../services/roleManagementService";
 
 /**
  * Users Tab
@@ -40,6 +41,7 @@ import {
 const UsersTab = () => {
   const [users, setUsers] = useState([]);
   const [stores, setStores] = useState([]);
+  const [userRoles, setUserRoles] = useState({}); // { userId: { role, subdomain } }
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -68,12 +70,37 @@ const UsersTab = () => {
       ]);
       setUsers(usersData);
       setStores(storesData);
+
+      // Fetch user roles
+      await fetchUserRoles(usersData);
     } catch (error) {
       console.error("Error fetching data:", error);
       setError("Failed to load users");
     } finally {
       setLoading(false);
     }
+  };
+
+  // Fetch user roles from custom claims
+  const fetchUserRoles = async (usersList) => {
+    const rolesMap = {};
+    for (const userData of usersList) {
+      try {
+        const roleInfo = await getUserRoleInfo(userData.userId || userData.id);
+        rolesMap[userData.userId || userData.id] = roleInfo;
+      } catch (err) {
+        console.error(
+          `Error fetching role for user ${userData.userId || userData.id}:`,
+          err
+        );
+        // Default to guest if error
+        rolesMap[userData.userId || userData.id] = {
+          role: "guest",
+          subdomain: null,
+        };
+      }
+    }
+    setUserRoles(rolesMap);
   };
 
   const handleCreateUser = async () => {
@@ -193,6 +220,9 @@ const UsersTab = () => {
           <TableHead>
             <TableRow sx={{ bgcolor: "primary.main" }}>
               <TableCell sx={{ color: "white", fontWeight: 700 }}>
+                Name
+              </TableCell>
+              <TableCell sx={{ color: "white", fontWeight: 700 }}>
                 Email
               </TableCell>
               <TableCell sx={{ color: "white", fontWeight: 700 }}>
@@ -207,55 +237,90 @@ const UsersTab = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {users.map((user) => (
-              <TableRow
-                key={user.id}
-                sx={{ "&:hover": { bgcolor: "action.hover" } }}
-              >
-                <TableCell>{user.email}</TableCell>
-                <TableCell>
-                  <Chip
-                    label={user.role}
-                    color={user.role === "superadmin" ? "error" : "primary"}
-                    size="small"
-                  />
-                </TableCell>
-                <TableCell>
-                  {user.storeId ? (
-                    <Chip
-                      label={user.storeId}
-                      size="small"
-                      variant="outlined"
-                    />
-                  ) : (
-                    <Typography variant="body2" color="text.secondary">
-                      Not assigned
+            {users.map((user) => {
+              const userId = user.userId || user.id;
+              const roleInfo = userRoles[userId] || {
+                role: "guest",
+                subdomain: null,
+              };
+              const isSuperAdmin =
+                user.profile?.email === "guestmenu0@gmail.com" ||
+                user.email === "guestmenu0@gmail.com" ||
+                roleInfo.role === "superadmin";
+
+              return (
+                <TableRow
+                  key={userId}
+                  sx={{ "&:hover": { bgcolor: "action.hover" } }}
+                >
+                  <TableCell>
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                      {user.profile?.name || user.name || "Unknown"}
                     </Typography>
-                  )}
-                </TableCell>
-                <TableCell align="right">
-                  {user.role === "manager" && (
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="body2">
+                      {user.profile?.email || user.email || "N/A"}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Chip
+                      label={
+                        isSuperAdmin
+                          ? "Super Admin"
+                          : roleInfo.role === "host"
+                          ? "Host"
+                          : roleInfo.role === "guest"
+                          ? "Guest"
+                          : user.role || "Guest"
+                      }
+                      color={
+                        isSuperAdmin
+                          ? "error"
+                          : roleInfo.role === "host"
+                          ? "primary"
+                          : "default"
+                      }
+                      size="small"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    {user.storeId ? (
+                      <Chip
+                        label={user.storeId}
+                        size="small"
+                        variant="outlined"
+                      />
+                    ) : (
+                      <Typography variant="body2" color="text.secondary">
+                        Not assigned
+                      </Typography>
+                    )}
+                  </TableCell>
+                  <TableCell align="right">
+                    {user.role === "manager" && (
+                      <IconButton
+                        color="primary"
+                        onClick={() => openAssignStoreDialog(user)}
+                        title="Assign Store"
+                      >
+                        <StoreIcon />
+                      </IconButton>
+                    )}
                     <IconButton
-                      color="primary"
-                      onClick={() => openAssignStoreDialog(user)}
-                      title="Assign Store"
+                      color="error"
+                      onClick={() => {
+                        setSelectedUser(user);
+                        setDeleteDialogOpen(true);
+                      }}
+                      title="Delete User"
                     >
-                      <StoreIcon />
+                      <Delete />
                     </IconButton>
-                  )}
-                  <IconButton
-                    color="error"
-                    onClick={() => {
-                      setSelectedUser(user);
-                      setDeleteDialogOpen(true);
-                    }}
-                    title="Delete User"
-                  >
-                    <Delete />
-                  </IconButton>
-                </TableCell>
-              </TableRow>
-            ))}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </TableContainer>
