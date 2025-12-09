@@ -38,6 +38,7 @@ import {
   Storefront,
   ErrorOutline,
   Restaurant,
+  ShoppingCart,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -58,6 +59,8 @@ import {
   addBanner,
   updateBanner,
   deleteBanner,
+  getHostOrders,
+  updateOrder,
 } from "../services/firebaseService";
 import {
   fetchSubcategories,
@@ -110,7 +113,7 @@ const ManagerDashboard = () => {
   const [subcategoryToDelete, setSubcategoryToDelete] = useState(null);
 
   // Banner management states
-  const [viewMode, setViewMode] = useState("menu"); // "menu" or "banners"
+  const [viewMode, setViewMode] = useState("menu"); // "menu", "banners", or "orders"
   const [banners, setBanners] = useState([]);
   const [bannerDialogOpen, setBannerDialogOpen] = useState(false);
   const [editBanner, setEditBanner] = useState(null);
@@ -121,6 +124,10 @@ const ManagerDashboard = () => {
     description: "",
     image: "",
   });
+
+  // Orders management states
+  const [orders, setOrders] = useState([]);
+  const [loadingOrders, setLoadingOrders] = useState(false);
 
   // --- STORE VERIFICATION & DATA FETCHING ---
   // 1. Verify manager's store assignment when the user is available
@@ -320,6 +327,26 @@ const ManagerDashboard = () => {
       loadBanners();
     }
   }, [viewMode, storeStatus]);
+
+  // Orders loading
+  const loadOrders = async () => {
+    if (!currentUser?.uid) return;
+    try {
+      setLoadingOrders(true);
+      const hostOrders = await getHostOrders(currentUser.uid);
+      setOrders(hostOrders);
+    } catch (error) {
+      console.error("Error loading orders:", error);
+    } finally {
+      setLoadingOrders(false);
+    }
+  };
+
+  useEffect(() => {
+    if (storeStatus === "assigned" && viewMode === "orders") {
+      loadOrders();
+    }
+  }, [viewMode, storeStatus, currentUser]);
 
   const loadBanners = async () => {
     setLoadingData(true);
@@ -670,6 +697,42 @@ const ManagerDashboard = () => {
                 sx={{ display: { xs: "none", sm: "inline" } }}
               >
                 Banners
+              </Box>
+            </Button>
+
+            {/* Orders Button */}
+            <Button
+              onClick={() => setViewMode("orders")}
+              variant={viewMode === "orders" ? "contained" : "outlined"}
+              size="small"
+              sx={{
+                color: viewMode === "orders" ? "#2C1A12" : "white",
+                bgcolor: viewMode === "orders" ? "#F2C14E" : "transparent",
+                borderColor: "rgba(242, 193, 78, 0.5)",
+                minWidth: { xs: 32, sm: "auto" },
+                width: { xs: 32, sm: "auto" },
+                height: { xs: 32, sm: "auto" },
+                px: { xs: 0, sm: 2 },
+                fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                fontWeight: 600,
+                borderRadius: 2,
+                "&:hover": {
+                  bgcolor:
+                    viewMode === "orders"
+                      ? "#FFD966"
+                      : "rgba(242, 193, 78, 0.1)",
+                  borderColor: "#F2C14E",
+                },
+              }}
+            >
+              <ShoppingCart
+                sx={{ fontSize: { xs: 18, sm: 20 }, mr: { xs: 0, sm: 0.75 } }}
+              />
+              <Box
+                component="span"
+                sx={{ display: { xs: "none", sm: "inline" } }}
+              >
+                Orders
               </Box>
             </Button>
 
@@ -1602,6 +1665,255 @@ const ManagerDashboard = () => {
               </Button>
             </DialogActions>
           </Dialog>
+        </Container>
+      )}
+
+      {/* Orders Management View */}
+      {viewMode === "orders" && (
+        <Container
+          maxWidth="lg"
+          sx={{
+            py: { xs: 2.5, sm: 3, md: 4 },
+            px: { xs: 1.5, sm: 2, md: 3 },
+            width: "100%",
+            maxWidth: "100%",
+          }}
+        >
+          <Typography
+            variant="h5"
+            sx={{
+              fontWeight: 700,
+              fontSize: { xs: "1.25rem", sm: "1.5rem", md: "1.75rem" },
+              mb: 3,
+            }}
+          >
+            Orders Management
+          </Typography>
+
+          {loadingOrders ? (
+            <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
+              <CircularProgress />
+            </Box>
+          ) : orders.length === 0 ? (
+            <Box
+              sx={{
+                bgcolor: "white",
+                borderRadius: 2,
+                p: 6,
+                textAlign: "center",
+              }}
+            >
+              <ShoppingCart sx={{ fontSize: 64, color: "gray", mb: 2 }} />
+              <Typography variant="h6" sx={{ mb: 1 }}>
+                No orders yet
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Orders from customers will appear here once they place an order.
+              </Typography>
+            </Box>
+          ) : (
+            <Grid container spacing={3}>
+              {orders.map((order) => (
+                <Grid item xs={12} key={order.id}>
+                  <Card
+                    sx={{
+                      bgcolor: "white",
+                      borderRadius: 2,
+                      boxShadow: 2,
+                    }}
+                  >
+                    <CardContent>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "flex-start",
+                          mb: 2,
+                          flexWrap: "wrap",
+                          gap: 2,
+                        }}
+                      >
+                        <Box>
+                          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                            Order #{order.orderId || order.id.slice(0, 8)}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {order.customerName || "Guest"}
+                            {order.customerEmail && ` • ${order.customerEmail}`}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {order.createdAt?.toDate
+                              ? order.createdAt.toDate().toLocaleString()
+                              : "N/A"}
+                          </Typography>
+                        </Box>
+                        <Chip
+                          label={order.status || "pending"}
+                          color={
+                            order.status === "confirmed"
+                              ? "primary"
+                              : order.status === "completed"
+                              ? "success"
+                              : order.status === "cancelled"
+                              ? "error"
+                              : "warning"
+                          }
+                          size="small"
+                        />
+                      </Box>
+
+                      <Box sx={{ mt: 2 }}>
+                        <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                          Items:
+                        </Typography>
+                        {order.items?.map((item, index) => (
+                          <Box
+                            key={index}
+                            sx={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              py: 1,
+                              borderBottom:
+                                index < order.items.length - 1
+                                  ? "1px solid #eee"
+                                  : "none",
+                            }}
+                          >
+                            <Box sx={{ display: "flex", gap: 2, flex: 1 }}>
+                              {item.imageURL && (
+                                <Box
+                                  component="img"
+                                  src={item.imageURL}
+                                  alt={item.name}
+                                  sx={{
+                                    width: 50,
+                                    height: 50,
+                                    objectFit: "cover",
+                                    borderRadius: 1,
+                                  }}
+                                />
+                              )}
+                              <Box>
+                                <Typography
+                                  variant="body2"
+                                  sx={{ fontWeight: 500 }}
+                                >
+                                  {item.name}
+                                </Typography>
+                                {item.description && (
+                                  <Typography
+                                    variant="caption"
+                                    color="text.secondary"
+                                  >
+                                    {item.description}
+                                  </Typography>
+                                )}
+                              </Box>
+                            </Box>
+                            <Typography
+                              variant="body2"
+                              sx={{ fontWeight: 600 }}
+                            >
+                              Qty: {item.quantity}
+                            </Typography>
+                          </Box>
+                        ))}
+                      </Box>
+
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          mt: 2,
+                          pt: 2,
+                          borderTop: "1px solid #eee",
+                        }}
+                      >
+                        <Typography variant="h6">
+                          Total Items: {order.totalItems || 0}
+                        </Typography>
+                        <Box sx={{ display: "flex", gap: 1 }}>
+                          {order.status === "pending" && (
+                            <>
+                              <Button
+                                size="small"
+                                variant="contained"
+                                color="primary"
+                                onClick={async () => {
+                                  try {
+                                    await updateOrder(
+                                      currentUser.uid,
+                                      order.id,
+                                      order.customerUserId,
+                                      { status: "confirmed" }
+                                    );
+                                    loadOrders();
+                                  } catch (error) {
+                                    console.error(
+                                      "Error updating order:",
+                                      error
+                                    );
+                                  }
+                                }}
+                              >
+                                Confirm
+                              </Button>
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                color="error"
+                                onClick={async () => {
+                                  try {
+                                    await updateOrder(
+                                      currentUser.uid,
+                                      order.id,
+                                      order.customerUserId,
+                                      { status: "cancelled" }
+                                    );
+                                    loadOrders();
+                                  } catch (error) {
+                                    console.error(
+                                      "Error updating order:",
+                                      error
+                                    );
+                                  }
+                                }}
+                              >
+                                Cancel
+                              </Button>
+                            </>
+                          )}
+                          {order.status === "confirmed" && (
+                            <Button
+                              size="small"
+                              variant="contained"
+                              color="success"
+                              onClick={async () => {
+                                try {
+                                  await updateOrder(
+                                    currentUser.uid,
+                                    order.id,
+                                    order.customerUserId,
+                                    { status: "completed" }
+                                  );
+                                  loadOrders();
+                                } catch (error) {
+                                  console.error("Error updating order:", error);
+                                }
+                              }}
+                            >
+                              Mark Complete
+                            </Button>
+                          )}
+                        </Box>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+          )}
         </Container>
       )}
     </Box>

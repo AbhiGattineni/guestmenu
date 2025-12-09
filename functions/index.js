@@ -21,8 +21,8 @@ exports.setUserRole = functions.https.onCall(async (data, context) => {
   // Verify the caller is authenticated and is a super admin
   if (!context.auth) {
     throw new functions.https.HttpsError(
-        "unauthenticated",
-        "User must be authenticated to set roles.",
+      "unauthenticated",
+      "User must be authenticated to set roles."
     );
   }
 
@@ -35,31 +35,31 @@ exports.setUserRole = functions.https.onCall(async (data, context) => {
 
   if (!isSuperAdmin) {
     throw new functions.https.HttpsError(
-        "permission-denied",
-        "Only super admins can set user roles.",
+      "permission-denied",
+      "Only super admins can set user roles."
     );
   }
 
-  const {uid, role, subdomain} = data;
+  const { uid, role, subdomain } = data;
 
   if (!uid) {
     throw new functions.https.HttpsError(
-        "invalid-argument",
-        "User ID is required.",
+      "invalid-argument",
+      "User ID is required."
     );
   }
 
   if (!["guest", "host", "superadmin"].includes(role)) {
     throw new functions.https.HttpsError(
-        "invalid-argument",
-        "Invalid role. Must be 'guest', 'host', or 'superadmin'.",
+      "invalid-argument",
+      "Invalid role. Must be 'guest', 'host', or 'superadmin'."
     );
   }
 
   if (role === "host" && !subdomain) {
     throw new functions.https.HttpsError(
-        "invalid-argument",
-        "Subdomain is required for host role.",
+      "invalid-argument",
+      "Subdomain is required for host role."
     );
   }
 
@@ -82,11 +82,10 @@ exports.setUserRole = functions.https.onCall(async (data, context) => {
       subdomain: role === "host" ? subdomain : null,
     };
   } catch (error) {
-    console.error("Error setting user role:", error);
     throw new functions.https.HttpsError(
-        "internal",
-        "Failed to set user role.",
-        error.message,
+      "internal",
+      "Failed to set user role.",
+      error.message
     );
   }
 });
@@ -101,8 +100,8 @@ exports.deleteUser = functions.https.onCall(async (data, context) => {
   // Verify the caller is authenticated and is a super admin
   if (!context.auth) {
     throw new functions.https.HttpsError(
-        "unauthenticated",
-        "User must be authenticated to delete users.",
+      "unauthenticated",
+      "User must be authenticated to delete users."
     );
   }
 
@@ -115,17 +114,17 @@ exports.deleteUser = functions.https.onCall(async (data, context) => {
 
   if (!isSuperAdmin) {
     throw new functions.https.HttpsError(
-        "permission-denied",
-        "Only super admins can delete users.",
+      "permission-denied",
+      "Only super admins can delete users."
     );
   }
 
-  const {uid} = data;
+  const { uid } = data;
 
   if (!uid) {
     throw new functions.https.HttpsError(
-        "invalid-argument",
-        "User ID is required.",
+      "invalid-argument",
+      "User ID is required."
     );
   }
 
@@ -133,8 +132,8 @@ exports.deleteUser = functions.https.onCall(async (data, context) => {
   const userToDelete = await admin.auth().getUser(uid);
   if (userToDelete.email === "guestmenu0@gmail.com") {
     throw new functions.https.HttpsError(
-        "permission-denied",
-        "Cannot delete super admin user.",
+      "permission-denied",
+      "Cannot delete super admin user."
     );
   }
 
@@ -157,9 +156,9 @@ exports.deleteUser = functions.https.onCall(async (data, context) => {
       });
 
       const settingsRef = db
-          .collection("users")
-          .doc(uid)
-          .collection("settings");
+        .collection("users")
+        .doc(uid)
+        .collection("settings");
       const settingsSnapshot = await settingsRef.get();
       settingsSnapshot.forEach((doc) => {
         batch.delete(doc.ref);
@@ -174,9 +173,9 @@ exports.deleteUser = functions.https.onCall(async (data, context) => {
 
       // Delete menu subcollections
       const categoriesRef = db
-          .collection("menus")
-          .doc(uid)
-          .collection("categories");
+        .collection("menus")
+        .doc(uid)
+        .collection("categories");
       const categoriesSnapshot = await categoriesRef.get();
       categoriesSnapshot.forEach((doc) => {
         batch.delete(doc.ref);
@@ -196,9 +195,9 @@ exports.deleteUser = functions.https.onCall(async (data, context) => {
       batch.delete(submissionsRef);
 
       const submissionsSubRef = db
-          .collection("submissions")
-          .doc(uid)
-          .collection("data");
+        .collection("submissions")
+        .doc(uid)
+        .collection("data");
       const submissionsSnapshot = await submissionsSubRef.get();
       submissionsSnapshot.forEach((doc) => {
         batch.delete(doc.ref);
@@ -207,18 +206,18 @@ exports.deleteUser = functions.https.onCall(async (data, context) => {
 
     // 4. Delete user's subdomain if exists
     const subdomainsSnapshot = await db
-        .collection("subdomains")
-        .where("userId", "==", uid)
-        .get();
+      .collection("subdomains")
+      .where("userId", "==", uid)
+      .get();
     subdomainsSnapshot.forEach((doc) => {
       batch.delete(doc.ref);
     });
 
     // 5. Delete public menu data if exists
     const publicMenusSnapshot = await db
-        .collection("publicMenus")
-        .where("userId", "==", uid)
-        .get();
+      .collection("publicMenus")
+      .where("userId", "==", uid)
+      .get();
     publicMenusSnapshot.forEach((doc) => {
       batch.delete(doc.ref);
     });
@@ -234,11 +233,10 @@ exports.deleteUser = functions.https.onCall(async (data, context) => {
       message: "User deleted successfully.",
     };
   } catch (error) {
-    console.error("Error deleting user:", error);
     throw new functions.https.HttpsError(
-        "internal",
-        "Failed to delete user.",
-        error.message,
+      "internal",
+      "Failed to delete user.",
+      error.message
     );
   }
 });
@@ -251,10 +249,11 @@ exports.deleteUser = functions.https.onCall(async (data, context) => {
  */
 exports.getUserRoleInfo = functions.https.onCall(async (data, context) => {
   // Verify the caller is authenticated and is a super admin
+  console.log("context", context);
   if (!context.auth) {
     throw new functions.https.HttpsError(
-        "unauthenticated",
-        "User must be authenticated to get role info.",
+      "unauthenticated",
+      "User must be authenticated to get role info."
     );
   }
 
@@ -267,17 +266,17 @@ exports.getUserRoleInfo = functions.https.onCall(async (data, context) => {
 
   if (!isSuperAdmin) {
     throw new functions.https.HttpsError(
-        "permission-denied",
-        "Only super admins can get user role info.",
+      "permission-denied",
+      "Only super admins can get user role info."
     );
   }
 
-  const {uid} = data;
+  const { uid } = data;
 
   if (!uid) {
     throw new functions.https.HttpsError(
-        "invalid-argument",
-        "User ID is required.",
+      "invalid-argument",
+      "User ID is required."
     );
   }
 
@@ -290,11 +289,10 @@ exports.getUserRoleInfo = functions.https.onCall(async (data, context) => {
       subdomain: customClaims.subdomain || null,
     };
   } catch (error) {
-    console.error("Error getting user role info:", error);
     throw new functions.https.HttpsError(
-        "internal",
-        "Failed to get user role info.",
-        error.message,
+      "internal",
+      "Failed to get user role info.",
+      error.message
     );
   }
 });

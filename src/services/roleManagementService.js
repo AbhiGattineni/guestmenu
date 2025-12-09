@@ -36,12 +36,9 @@ export const setUserRole = async (uid, role, subdomain = null) => {
     // Force token refresh to ensure we have a valid token
     await currentUser.getIdToken(true);
 
-    console.log("Setting user role with authenticated user:", currentUser.uid);
     const result = await setUserRoleCallable({ uid, role, subdomain });
     return result.data;
   } catch (error) {
-    console.error("Error setting user role via Cloud Function:", error);
-
     // Handle specific error codes
     if (
       error.code === "functions/unavailable" ||
@@ -89,12 +86,9 @@ export const deleteUser = async (uid) => {
     // Force token refresh to ensure we have a valid token
     await currentUser.getIdToken(true);
 
-    console.log("Deleting user with authenticated user:", currentUser.uid);
     const result = await deleteUserCallable({ uid });
     return result.data;
   } catch (error) {
-    console.error("Error deleting user via Cloud Function:", error);
-
     // Handle specific error codes
     if (
       error.code === "functions/unavailable" ||
@@ -134,14 +128,10 @@ export const getUserRoleInfo = async (uid) => {
     const result = await getUserRoleInfoCallable({ uid });
     return result.data;
   } catch (error) {
-    console.error("Error fetching user role info via Cloud Function:", error);
     if (
       error.code === "functions/unavailable" ||
       error.code === "functions/not-found"
     ) {
-      console.warn(
-        "Cloud Functions are not deployed. Defaulting to guest role for user role info."
-      );
       return { role: "guest", subdomain: null };
     }
     throw error;

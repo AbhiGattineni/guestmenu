@@ -558,6 +558,136 @@ export const deleteSubmission = async (userId, submissionId) => {
   }
 };
 
+// ============ ORDER OPERATIONS ============
+
+/**
+ * Create a new order
+ * @param {string} hostUserId - The user ID of the host/restaurant owner
+ * @param {string} customerUserId - The user ID of the customer placing the order
+ * @param {Object} orderData - Order data including items, subdomain, etc.
+ * @returns {Promise<Object>} Created order with ID
+ */
+export const createOrder = async (hostUserId, customerUserId, orderData) => {
+  try {
+    const orderId = doc(collection(db, "orders")).id;
+
+    const orderWithMetadata = {
+      ...orderData,
+      orderId,
+      hostUserId,
+      customerUserId,
+      status: "pending",
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
+    };
+
+    // Save order in host's orders collection
+    const hostOrderRef = doc(db, "orders", hostUserId, "orders", orderId);
+    await setDoc(hostOrderRef, orderWithMetadata);
+
+    // Save order in customer's orders collection
+    const customerOrderRef = doc(
+      db,
+      "userOrders",
+      customerUserId,
+      "orders",
+      orderId
+    );
+    await setDoc(customerOrderRef, orderWithMetadata);
+
+    return {
+      id: orderId,
+      ...orderWithMetadata,
+    };
+  } catch (error) {
+    console.error("Error creating order:", error);
+    throw error;
+  }
+};
+
+/**
+ * Get all orders for a host
+ * @param {string} hostUserId - The user ID of the host
+ * @returns {Promise<Array>} Array of orders
+ */
+export const getHostOrders = async (hostUserId) => {
+  try {
+    const ordersRef = collection(db, "orders", hostUserId, "orders");
+    const q = query(ordersRef, orderBy("createdAt", "desc"));
+    const ordersSnap = await getDocs(q);
+
+    return ordersSnap.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+  } catch (error) {
+    console.error("Error fetching host orders:", error);
+    return [];
+  }
+};
+
+/**
+ * Get all orders for a customer
+ * @param {string} customerUserId - The user ID of the customer
+ * @returns {Promise<Array>} Array of orders
+ */
+export const getUserOrders = async (customerUserId) => {
+  try {
+    const ordersRef = collection(db, "userOrders", customerUserId, "orders");
+    const q = query(ordersRef, orderBy("createdAt", "desc"));
+    const ordersSnap = await getDocs(q);
+
+    return ordersSnap.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+  } catch (error) {
+    console.error("Error fetching user orders:", error);
+    return [];
+  }
+};
+
+/**
+ * Update order status
+ * @param {string} hostUserId - The user ID of the host
+ * @param {string} orderId - The order ID
+ * @param {string} customerUserId - The user ID of the customer
+ * @param {Object} updateData - Data to update (e.g., status)
+ * @returns {Promise<Object>} Updated order data
+ */
+export const updateOrder = async (
+  hostUserId,
+  orderId,
+  customerUserId,
+  updateData
+) => {
+  try {
+    const updateWithTimestamp = {
+      ...updateData,
+      updatedAt: Timestamp.now(),
+    };
+
+    // Update in host's orders
+    const hostOrderRef = doc(db, "orders", hostUserId, "orders", orderId);
+    await updateDoc(hostOrderRef, updateWithTimestamp);
+
+    // Update in customer's orders
+    const customerOrderRef = doc(
+      db,
+      "userOrders",
+      customerUserId,
+      "orders",
+      orderId
+    );
+    await updateDoc(customerOrderRef, updateWithTimestamp);
+
+    return updateData;
+  } catch (error) {
+    console.error("Error updating order:", error);
+    throw error;
+  }
+};
+
 // ============ PUBLIC MENU ACCESS ============
 
 export const getPublicMenu = async (userId, menuId) => {

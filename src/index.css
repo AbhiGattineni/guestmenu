@@ -42,6 +42,22 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Animation for success banner */
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slideDown {
+  animation: slideDown 0.3s ease-out;
+}
+
 /* Prevent text overflow */
 #root {
   overflow-x: hidden;

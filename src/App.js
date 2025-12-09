@@ -20,6 +20,7 @@ import DashboardPage from "./pages/DashboardPage";
 import MenuBuilderPage from "./pages/MenuBuilderPage";
 import SubmissionsPage from "./pages/SubmissionsPage";
 import SettingsPage from "./pages/SettingsPage";
+import OrderHistoryPage from "./pages/OrderHistoryPage";
 
 // Guest Pages
 import PublicMenuPage from "./pages/PublicMenuPage";
@@ -142,9 +143,20 @@ const SubdomainHandler = () => {
     return <LoadingScreen />;
   }
 
-  // If subdomain detected, show public menu (even if userId is null for 404)
+  // If subdomain detected, show public menu with subdomain-aware routing
   if (subdomain) {
-    return <PublicMenuPage subdomain={subdomain} userId={userId} />;
+    return (
+      <Routes>
+        <Route
+          path="/orders"
+          element={<PublicMenuPage subdomain={subdomain} userId={userId} />}
+        />
+        <Route
+          path="*"
+          element={<PublicMenuPage subdomain={subdomain} userId={userId} />}
+        />
+      </Routes>
+    );
   }
 
   // Otherwise, show regular app routes
@@ -244,6 +256,14 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <SettingsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/orders"
+        element={
+          <ProtectedRoute>
+            <OrderHistoryPage />
           </ProtectedRoute>
         }
       />
