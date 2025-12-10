@@ -7,14 +7,6 @@ const withRoleProtection = (WrappedComponent, allowedRoles) => {
   return (props) => {
     const { currentUser, userRole, loading } = useAuth(); // Hooks to get user and role
 
-    console.log("🔒 withRoleProtection check:", {
-      user: currentUser?.email,
-      userRole,
-      allowedRoles,
-      loading,
-      isAllowed: allowedRoles.includes(userRole),
-    });
-
     // Show loading while auth state is being determined
     if (loading) {
       return (
@@ -39,13 +31,11 @@ const withRoleProtection = (WrappedComponent, allowedRoles) => {
 
     // Not logged in - redirect to login
     if (!currentUser) {
-      console.log("❌ No user logged in, redirecting to /login");
       return <Navigate to="/login" replace />;
     }
 
     // User is logged in but role hasn't loaded yet - wait
     if (currentUser && !userRole) {
-      console.log("⏳ User logged in but role not loaded yet, waiting...");
       return (
         <Box
           sx={{
@@ -68,17 +58,10 @@ const withRoleProtection = (WrappedComponent, allowedRoles) => {
 
     // User has role but not in allowed roles
     if (!allowedRoles.includes(userRole)) {
-      console.log(
-        "🚫 Access denied! User role:",
-        userRole,
-        "Allowed roles:",
-        allowedRoles
-      );
       return <Navigate to="/unauthorized" replace />;
     }
 
     // User has correct role - render component
-    console.log("✅ Access granted! Rendering component for role:", userRole);
     return <WrappedComponent {...props} />;
   };
 };

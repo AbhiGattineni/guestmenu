@@ -3,10 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import NotificationModal from "../components/NotificationModal";
 import ConfirmDialog from "../components/ConfirmDialog";
-import {
-  getAllBusinesses,
-  getBusinessStatistics,
-} from "../services/superAdminService";
+import { getBusinessStatistics } from "../services/superAdminService";
+import { getHostOrders } from "../services/firebaseService";
 import {
   setUserRole,
   deleteUser,
@@ -37,7 +35,7 @@ const SuperAdminDashboard = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [activeTab, setActiveTab] = useState("menu-management"); // "menu-management" or "businesses" or "users"
+  const [activeTab, setActiveTab] = useState("menu-management"); // "menu-management" or "businesses" or "users" or "orders"
 
   // Onboarding form states
   const [onboardForm, setOnboardForm] = useState({
@@ -93,6 +91,12 @@ const SuperAdminDashboard = () => {
   });
   const [roleLoading, setRoleLoading] = useState(false);
 
+  // Orders tab states
+  const [allOrders, setAllOrders] = useState([]);
+  const [loadingOrders, setLoadingOrders] = useState(false);
+  const [selectedBusinessForOrders, setSelectedBusinessForOrders] =
+    useState(null);
+
   useEffect(() => {
     // Redirect if not super admin
     if (!isSuperAdminUser) {
@@ -120,6 +124,45 @@ const SuperAdminDashboard = () => {
 
     fetchData();
   }, [isSuperAdminUser, navigate]);
+
+  const fetchAllOrders = async () => {
+    try {
+      setLoadingOrders(true);
+      const ordersByBusiness = [];
+
+      // Fetch orders for each business
+      for (const business of businesses) {
+        try {
+          const orders = await getHostOrders(business.userId);
+          // Include all businesses, even if they have no orders
+          ordersByBusiness.push({
+            business: business,
+            orders: orders,
+          });
+        } catch (error) {
+          console.error(
+            `Error fetching orders for ${business.subdomain}:`,
+            error
+          );
+        }
+      }
+
+      setAllOrders(ordersByBusiness);
+    } catch (error) {
+      console.error("Error fetching all orders:", error);
+      setError("Failed to load orders");
+    } finally {
+      setLoadingOrders(false);
+    }
+  };
+
+  // Fetch all orders when orders tab is active
+  useEffect(() => {
+    if (activeTab === "orders") {
+      fetchAllOrders();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, businesses]);
 
   // Fetch user roles from custom claims
   const fetchUserRoles = async (usersList) => {
@@ -856,6 +899,19 @@ const SuperAdminDashboard = () => {
               <span className="flex items-center gap-2">
                 <span>👥</span>
                 Users ({users.length})
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveTab("orders")}
+              className={`py-4 px-2 font-semibold border-b-2 transition-colors ${
+                activeTab === "orders"
+                  ? "text-blue-600 border-blue-600"
+                  : "text-gray-600 border-transparent hover:text-gray-900"
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                <span>📦</span>
+                Orders
               </span>
             </button>
           </div>
@@ -1684,6 +1740,179 @@ const SuperAdminDashboard = () => {
                   </tbody>
                 </table>
               </div>
+            )}
+          </div>
+        )}
+
+        {/* Orders Tab */}
+        {activeTab === "orders" && (
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">
+                    All Orders
+                  </h2>
+                  <p className="text-sm text-gray-600 mt-1">
+                    View orders placed by customers for each business
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <label className="text-sm font-medium text-gray-700">
+                    Filter by Business:
+                  </label>
+                  <select
+                    value={selectedBusinessForOrders || ""}
+                    onChange={(e) => {
+                      const businessId = e.target.value;
+                      setSelectedBusinessForOrders(businessId || null);
+                    }}
+                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 min-w-[250px]"
+                  >
+                    <option value="">All Businesses</option>
+                    {businesses.map((business) => {
+                      const businessOrders = allOrders.find(
+                        (item) => item.business.userId === business.userId
+                      );
+                      const orderCount = businessOrders?.orders?.length || 0;
+                      return (
+                        <option key={business.userId} value={business.userId}>
+                          {business.owner?.name || business.subdomain} (
+                          {business.subdomain}.guestmenu.com) - {orderCount}{" "}
+                          order{orderCount !== 1 ? "s" : ""}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {loadingOrders ? (
+              <div className="p-12 text-center">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <p className="text-gray-600 mt-4">Loading orders...</p>
+              </div>
+            ) : (
+              (() => {
+                // Filter orders based on selected business
+                const filteredOrders = selectedBusinessForOrders
+                  ? allOrders.filter(
+                      (item) =>
+                        item.business.userId === selectedBusinessForOrders
+                    )
+                  : allOrders;
+
+                // Filter out businesses with no orders if showing all
+                const displayOrders = selectedBusinessForOrders
+                  ? filteredOrders
+                  : filteredOrders.filter((item) => item.orders.length > 0);
+
+                if (displayOrders.length === 0) {
+                  return (
+                    <div className="p-12 text-center">
+                      <p className="text-gray-600">
+                        {selectedBusinessForOrders
+                          ? "No orders found for this business"
+                          : "No orders found"}
+                      </p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="divide-y divide-gray-200">
+                    {displayOrders.map(({ business, orders }) => (
+                      <div key={business.subdomain} className="p-6">
+                        <div className="mb-4 pb-4 border-b border-gray-200">
+                          <h3 className="text-lg font-bold text-gray-900">
+                            {business.owner?.name || business.subdomain}
+                          </h3>
+                          <p className="text-sm text-gray-600">
+                            {business.subdomain}.guestmenu.com • {orders.length}{" "}
+                            order{orders.length !== 1 ? "s" : ""}
+                          </p>
+                        </div>
+
+                        <div className="space-y-4">
+                          {orders.map((order) => (
+                            <div
+                              key={order.id}
+                              className="bg-gray-50 rounded-lg p-4 border border-gray-200"
+                            >
+                              <div className="flex justify-between items-start mb-3">
+                                <div>
+                                  <p className="font-semibold text-gray-900">
+                                    Order #
+                                    {order.orderId || order.id.slice(0, 8)}
+                                  </p>
+                                  <p className="text-sm text-gray-600">
+                                    {order.createdAt?.toDate
+                                      ? new Date(
+                                          order.createdAt.toDate()
+                                        ).toLocaleString()
+                                      : "N/A"}
+                                  </p>
+                                </div>
+                                <span
+                                  className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                                    order.status === "completed"
+                                      ? "bg-green-100 text-green-800"
+                                      : order.status === "cancelled"
+                                      ? "bg-red-100 text-red-800"
+                                      : order.status === "confirmed"
+                                      ? "bg-blue-100 text-blue-800"
+                                      : "bg-yellow-100 text-yellow-800"
+                                  }`}
+                                >
+                                  {order.status || "pending"}
+                                </span>
+                              </div>
+
+                              <div className="mb-3">
+                                <p className="text-sm text-gray-700">
+                                  <strong>Customer:</strong>{" "}
+                                  {order.customerName || "Guest"}
+                                </p>
+                                {order.customerEmail && (
+                                  <p className="text-sm text-gray-600">
+                                    {order.customerEmail}
+                                  </p>
+                                )}
+                              </div>
+
+                              <div className="mb-3">
+                                <p className="text-sm font-semibold text-gray-900 mb-2">
+                                  Order Items:
+                                </p>
+                                <div className="space-y-1">
+                                  {order.items?.map((item, index) => (
+                                    <div
+                                      key={index}
+                                      className="flex justify-between text-sm text-gray-700 bg-white px-3 py-2 rounded border border-gray-200"
+                                    >
+                                      <span>
+                                        {item.quantity}x {item.name}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+
+                              <div className="flex justify-between items-center pt-3 border-t border-gray-200">
+                                <span className="text-sm text-gray-600">
+                                  Total Items:{" "}
+                                  <strong>{order.totalItems || 0}</strong>
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()
             )}
           </div>
         )}

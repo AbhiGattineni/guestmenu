@@ -18,6 +18,15 @@ const PublicMenuPage = ({ subdomain: propSubdomain, userId: propUserId }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const subdomain = propSubdomain || paramSubdomain;
+
+  // Helper function to get display URL based on current hostname
+  const getDisplayUrl = () => {
+    const hostname = window.location.hostname;
+    if (hostname === "localhost" || hostname === "127.0.0.1") {
+      return "localhost";
+    }
+    return hostname;
+  };
   const { user, isAuthenticated, logout } = useAuth();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [cart, setCart] = useState([]);
@@ -102,29 +111,6 @@ const PublicMenuPage = ({ subdomain: propSubdomain, userId: propUserId }) => {
           ...doc.data(),
         }));
         setItems(itemsData);
-
-        // Debug logging
-        console.log("Fetched data:", {
-          userId,
-          categories: categoriesData.length,
-          items: itemsData.length,
-          categoriesData,
-          itemsData,
-        });
-
-        // Debug category matching
-        if (itemsData.length > 0) {
-          console.log("Category matching debug:");
-          itemsData.forEach((item) => {
-            console.log(`Item "${item.name}" has category: "${item.category}"`);
-            const matchedCat = categoriesData.find(
-              (cat) => cat.id === item.category || cat.name === item.category
-            );
-            console.log(
-              `  Matches category: ${matchedCat ? matchedCat.name : "NONE"}`
-            );
-          });
-        }
       } catch (error) {
         console.error("Error fetching menu data:", error);
       } finally {
@@ -141,9 +127,7 @@ const PublicMenuPage = ({ subdomain: propSubdomain, userId: propUserId }) => {
       const fetchOrders = async () => {
         try {
           setLoadingOrders(true);
-          console.log("Fetching orders for user:", user.uid);
           const userOrders = await getUserOrders(user.uid);
-          console.log("Orders fetched successfully:", userOrders);
           setOrders(userOrders);
         } catch (error) {
           console.error("Error fetching orders:", error);
@@ -317,7 +301,7 @@ const PublicMenuPage = ({ subdomain: propSubdomain, userId: propUserId }) => {
             <p className="text-gray-600 text-lg mb-2">
               The menu{" "}
               <span className="font-semibold text-indigo-600">
-                {subdomain}.guestmenu.com
+                {getDisplayUrl()}
               </span>{" "}
               doesn't exist.
             </p>
@@ -397,7 +381,6 @@ const PublicMenuPage = ({ subdomain: propSubdomain, userId: propUserId }) => {
           isOpen={isLoginModalOpen}
           onClose={() => setIsLoginModalOpen(false)}
           onLoginSuccess={() => {
-            console.log("Guest logged in successfully");
             setIsLoginModalOpen(false);
             window.location.href = "/dashboard";
           }}
@@ -486,7 +469,7 @@ const PublicMenuPage = ({ subdomain: propSubdomain, userId: propUserId }) => {
                 <div className="flex items-center gap-2">
                   <div className="flex items-center gap-1.5 bg-gray-100 px-3 py-1 rounded-full border border-gray-200">
                     <p className="text-xs sm:text-sm text-gray-700 font-bold truncate">
-                      {subdomain}.guestmenu.com
+                      {getDisplayUrl()}
                     </p>
                   </div>
                 </div>
@@ -499,7 +482,6 @@ const PublicMenuPage = ({ subdomain: propSubdomain, userId: propUserId }) => {
               {isAuthenticated && currentView === "menu" && (
                 <button
                   onClick={() => {
-                    console.log("Orders button clicked, navigating to /orders");
                     navigate("/orders");
                   }}
                   className="bg-white hover:bg-gray-50 p-3 sm:p-3.5 rounded-full transition-all duration-200 shadow-md hover:shadow-lg border-2 border-gray-200 hover:border-gray-900"

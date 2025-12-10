@@ -34,16 +34,6 @@ const LoginModal = ({ open, onClose }) => {
     try {
       const result = await login(email, password);
       if (result.success) {
-        // Log role information
-        if (result.role) {
-          console.log("User role:", result.role);
-          console.log(
-            `Role: ${result.role.role}, Subdomain: ${
-              result.role.subdomain || "N/A"
-            }`
-          );
-        }
-
         // Close modal on successful login
         onClose();
         setEmail("");

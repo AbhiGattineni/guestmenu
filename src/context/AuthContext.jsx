@@ -44,8 +44,6 @@ export const AuthProvider = ({ children }) => {
       const role = claims.role || "guest";
       const subdomain = claims.subdomain || null;
 
-      console.log("User role from token:", { role, subdomain, claims });
-
       return {
         role,
         subdomain,
@@ -148,8 +146,6 @@ export const AuthProvider = ({ children }) => {
         const roleInfo = await getUserRole(authUser);
         setUserRole(roleInfo);
 
-        console.log("User logged in with role:", roleInfo);
-
         return {
           user: authUser,
           role: roleInfo,
@@ -217,9 +213,11 @@ export const AuthProvider = ({ children }) => {
       // Get user role from custom claims
       const roleInfo = await getUserRole(result.user);
       setUserRole(roleInfo);
-      console.log("User logged in with Google, role:", roleInfo);
 
-      return result;
+      return {
+        ...result,
+        role: roleInfo,
+      };
     } catch (err) {
       setError(err.message);
       throw err;

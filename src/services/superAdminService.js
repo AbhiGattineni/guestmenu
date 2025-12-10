@@ -9,7 +9,6 @@ import {
   getDocs,
   query,
   orderBy,
-  doc,
   getDoc,
 } from "firebase/firestore";
 
@@ -138,9 +137,11 @@ export const getBusinessStatistics = async () => {
   }
 };
 
-export default {
+const superAdminService = {
   isSuperAdmin,
   getAllBusinesses,
   getAllUsers,
   getBusinessStatistics,
 };
+
+export default superAdminService;

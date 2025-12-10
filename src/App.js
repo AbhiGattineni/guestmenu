@@ -4,6 +4,7 @@ import {
   Routes,
   Route,
   Navigate,
+  useLocation,
 } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { getDoc, doc, getFirestore } from "firebase/firestore";
@@ -45,13 +46,15 @@ const LoadingScreen = () => (
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading, isEmailVerified } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return <LoadingScreen />;
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    // Preserve the original route in state
+    return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
 
   if (!isEmailVerified) {
@@ -164,8 +167,7 @@ const SubdomainHandler = () => {
 };
 
 const AppRoutes = () => {
-  const { isAuthenticated, isEmailVerified, loading, isSuperAdminUser } =
-    useAuth();
+  const { isAuthenticated, isEmailVerified, loading } = useAuth();
 
   if (loading) {
     return <LoadingScreen />;
@@ -221,7 +223,7 @@ const AppRoutes = () => {
           isAuthenticated && isEmailVerified ? (
             <SuperAdminDashboard />
           ) : (
-            <Navigate to="/login" replace />
+            <Navigate to="/login" state={{ from: "/super-admin" }} replace />
           )
         }
       />

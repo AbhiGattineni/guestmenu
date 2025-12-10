@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 const LoginPage = () => {
@@ -10,6 +10,10 @@ const LoginPage = () => {
   const [googleLoading, setGoogleLoading] = useState(false);
   const { login, googleLogin } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Get the original route from location state, or default to dashboard
+  const from = location.state?.from || "/dashboard";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -18,16 +22,13 @@ const LoginPage = () => {
 
     try {
       const result = await login(email, password);
-      // Log role information
-      if (result.role) {
-        console.log("User logged in with role:", result.role);
-        console.log(
-          `Role: ${result.role.role}, Subdomain: ${
-            result.role.subdomain || "N/A"
-          }`
-        );
+
+      // Navigate to the original route or default based on role
+      if (result.role?.role === "superadmin") {
+        navigate("/super-admin");
+      } else {
+        navigate(from);
       }
-      navigate("/dashboard");
     } catch (err) {
       setError(err.message || "Failed to login");
     } finally {
@@ -41,12 +42,13 @@ const LoginPage = () => {
 
     try {
       const result = await googleLogin();
-      // Log role information
-      if (result && result.user) {
-        console.log("User logged in with Google");
-        // Role will be logged in AuthContext
+
+      // Navigate based on original route or role
+      if (from === "/super-admin" || result?.role?.role === "superadmin") {
+        navigate("/super-admin");
+      } else {
+        navigate("/onboarding");
       }
-      navigate("/onboarding");
     } catch (err) {
       setError(err.message || "Failed to sign in with Google");
     } finally {

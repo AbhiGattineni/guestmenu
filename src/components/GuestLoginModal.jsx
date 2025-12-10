@@ -29,16 +29,7 @@ const GuestLoginModal = ({ isOpen, onClose, onLoginSuccess }) => {
         await signup(email, password, { name, phone });
       } else {
         // Sign in
-        const result = await login(email, password);
-        // Log role information
-        if (result.role) {
-          console.log("User logged in with role:", result.role);
-          console.log(
-            `Role: ${result.role.role}, Subdomain: ${
-              result.role.subdomain || "N/A"
-            }`
-          );
-        }
+        await login(email, password);
       }
       onLoginSuccess?.();
       onClose();
